@@ -79,6 +79,17 @@ const Login = () => {
             />
           </div>
 
+          <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '8px' }}>
+            <Link to="/forgot-password" style={{ 
+              fontSize: '13px', 
+              color: 'var(--text-light)', 
+              textDecoration: 'none',
+              fontWeight: '500'
+            }}>
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
           <button type="submit" className="btn-primary login-btn" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
             {!loading && <ArrowRight size={20} />}

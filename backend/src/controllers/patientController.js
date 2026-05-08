@@ -22,7 +22,7 @@ exports.getProfile = async (req, res) => {
 // Actualizar el perfil del paciente logueado (RF03, RF05)
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, address, age, allergies } = req.body;
+    const { firstName, lastName, address, age, allergies, email, phone } = req.body;
 
     const updatedProfile = await prisma.patientProfile.update({
       where: { userId: req.user.userId },
@@ -31,7 +31,9 @@ exports.updateProfile = async (req, res) => {
         lastName,
         address,
         age: age ? parseInt(age) : undefined,
-        allergies
+        allergies,
+        email,
+        phone
       }
     });
 

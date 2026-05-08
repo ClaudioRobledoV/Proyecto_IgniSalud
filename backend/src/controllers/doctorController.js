@@ -22,14 +22,16 @@ exports.getProfile = async (req, res) => {
 // Actualizar el perfil del doctor logueado
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, specialty } = req.body;
+    const { firstName, lastName, specialty, email, phone } = req.body;
 
     const updatedProfile = await prisma.doctorProfile.update({
       where: { userId: req.user.userId },
       data: {
         firstName,
         lastName,
-        specialty
+        specialty,
+        email,
+        phone
       }
     });
 
@@ -92,11 +94,9 @@ exports.getAvailableSlots = async (req, res) => {
     addBlocks(9, 0, 12, 20); // Mañana: Última a las 12:20 (termina 13:00)
     addBlocks(14, 0, 18, 0); // Tarde: Última a las 18:00 (termina 18:40)
 
-    // 3. Rango del día para buscar citas
-    const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    // 3. Rango del día para buscar citas (Explicitamente UTC)
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
     // 4. Buscar citas ocupadas
     const appointments = await prisma.appointment.findMany({

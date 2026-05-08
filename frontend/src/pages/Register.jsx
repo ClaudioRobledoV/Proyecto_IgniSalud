@@ -9,6 +9,8 @@ const Register = () => {
     rut: '',
     firstName: '',
     lastName: '',
+    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -36,6 +38,8 @@ const Register = () => {
         rut: formData.rut,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
         password: formData.password
       });
 
@@ -115,6 +119,29 @@ const Register = () => {
               onChange={handleChange}
               required
             />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="input-group">
+              <Mail size={18} className="input-icon" />
+              <input 
+                name="email"
+                type="email" 
+                placeholder="Email (opcional)" 
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="input-group">
+              <Phone size={18} className="input-icon" />
+              <input 
+                name="phone"
+                type="tel" 
+                placeholder="Teléfono" 
+                value={formData.phone}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div className="input-group">

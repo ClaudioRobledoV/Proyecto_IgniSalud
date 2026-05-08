@@ -3,7 +3,7 @@ const prisma = require('../config/prisma');
 const fs = require('fs');
 
 // Configuración de Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy_key");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: "v1beta" });
 
 // Función principal de Triage (RF10, RF11)
 exports.getTriageAnalysis = async (req, res) => {
@@ -106,15 +106,21 @@ exports.transcribeVoice = async (req, res) => {
             return res.status(500).json({ message: "Configuración incompleta: Falta la API Key de Gemini." });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        console.log("Iniciando transcripción con Gemini (gemini-flash-lite-latest)...");
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
 
         // Leer el archivo de audio
         const audioBuffer = fs.readFileSync(req.file.path);
+        console.log("Archivo de audio leído. Tamaño:", audioBuffer.length);
         
+        // Limpiar mimeType (ej. "audio/webm;codecs=opus" -> "audio/webm")
+        const cleanMimeType = req.file.mimetype ? req.file.mimetype.split(';')[0] : 'audio/webm';
+        console.log("MimeType detectado:", cleanMimeType);
+
         const part = {
             inlineData: {
                 data: audioBuffer.toString("base64"),
-                mimeType: req.file.mimetype
+                mimeType: cleanMimeType
             }
         };
 
@@ -123,6 +129,7 @@ exports.transcribeVoice = async (req, res) => {
         const result = await model.generateContent([prompt, part]);
         const response = await result.response;
         const text = response.text();
+        console.log("Transcripción exitosa:", text.substring(0, 50) + "...");
 
         // Limpiar el archivo temporal
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
@@ -133,8 +140,17 @@ exports.transcribeVoice = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en transcripción:", error);
-        res.status(500).json({ message: "Error al procesar el audio con la IA." });
+        console.error("Error DETALLADO en transcripción:", error);
+        
+        let userMessage = "Error al procesar el audio con la IA.";
+        if (error.status === 429 || (error.message && error.message.includes("429"))) {
+            userMessage = "Límite de la IA alcanzado (429). Por favor, intenta de nuevo en unos minutos o verifica tus créditos en AI Studio.";
+        }
+
+        res.status(error.status || 500).json({ 
+            message: userMessage,
+            details: error.message
+        });
     }
 };
 
@@ -183,5 +199,25 @@ exports.saveMedicalNote = async (req, res) => {
     } catch (error) {
         console.error("Error al guardar nota médica:", error);
         res.status(500).json({ message: "Error interno al guardar la atención." });
+    }
+};
+
+// Obtener registro médico por ID de cita (Para DoctorConsole)
+exports.getMedicalRecordByAppointment = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+
+        const record = await prisma.medicalRecord.findUnique({
+            where: { appointmentId: appointmentId }
+        });
+
+        if (!record) {
+            return res.status(404).json({ message: "Registro no encontrado para esta cita." });
+        }
+
+        res.json(record);
+    } catch (error) {
+        console.error("Error obteniendo registro:", error);
+        res.status(500).json({ message: "Error al obtener el registro médico." });
     }
 };

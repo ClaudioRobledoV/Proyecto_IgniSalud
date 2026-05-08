@@ -11,6 +11,7 @@ const Booking = () => {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const Booking = () => {
     try {
       // Combinar fecha y slot para el backend
       const appointmentDate = `${date}T${selectedSlot}:00Z`;
-      await appointmentService.createAppointment(selectedDoctor, appointmentDate);
+      await appointmentService.createAppointment(selectedDoctor, appointmentDate, reason);
       setSuccess(true);
       setTimeout(() => navigate('/dashboard'), 2500);
     } catch (err) {
@@ -165,6 +166,18 @@ const Booking = () => {
               <p className="hint">Selecciona una fecha primero.</p>
             )}
           </div>
+
+          {/* Paso 4: Motivo */}
+          <div className={`step-field ${!selectedSlot ? 'disabled' : ''}`}>
+            <label>4. Motivo de la Consulta (Opcional)</label>
+            <textarea 
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Describe brevemente tus síntomas o el motivo de tu visita..."
+              className="booking-reason"
+              rows="3"
+            />
+          </div>
         </div>
 
         {error && <p className="error-msg">{error}</p>}
@@ -241,6 +254,14 @@ const Booking = () => {
         .hint { color: #CBD5E1; font-size: 14px; }
 
         .booking-submit { width: 100%; height: 60px; font-size: 16px; }
+
+        .booking-reason {
+          width: 100%; padding: 14px 18px; 
+          border-radius: 12px; border: 2px solid #F1F5F9;
+          background: #F8FAFC; font-size: 15px; color: #1E293B;
+          transition: all 0.2s; resize: none;
+        }
+        .booking-reason:focus { border-color: var(--primary); outline: none; background: white; }
 
         .success-view { text-align: center; }
         .success-icon { 

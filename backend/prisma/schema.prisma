@@ -52,6 +52,8 @@ model PatientProfile {
   address   String?
   age       Int?
   allergies String?  // Relacionado con RF03
+  email     String?
+  phone     String?
   
   // Relaciones
   appointments   Appointment[]
@@ -65,6 +67,8 @@ model DoctorProfile {
   firstName String
   lastName  String
   specialty String?
+  email     String?
+  phone     String?
   
   // Relaciones relacionadas con RF04
   appointments   Appointment[]
@@ -77,6 +81,7 @@ model Appointment {
   doctorId    String
   date        DateTime // Fecha y Hora (RF07)
   status      AppointmentStatus @default(PENDING) // RF08
+  reason      String?  // Motivo de la consulta (RF07)
   createdAt   DateTime @default(now())
   
   // Relaciones

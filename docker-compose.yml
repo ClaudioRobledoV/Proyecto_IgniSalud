@@ -1,6 +1,6 @@
 # Este archivo nos permite levantar una base de datos PostgreSQL fácilmente mediante Docker.
 # Es ideal para no ensuciar la computadora instalando programas directamente.
-# Si prefieres usar pgAdmin u otro instalado en tu máquina, de todas formas este archivo te sirve como guía de credenciales.
+
 
 version: '3.8'
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, AlertTriangle, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, AlertTriangle, CheckCircle2, Loader2, ArrowLeft, Mic, Square } from 'lucide-react';
 import aiService from '../services/aiService';
 
 const Triage = () => {
@@ -8,7 +8,60 @@ const Triage = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [recording, setRecording] = useState(false);
+  const mediaRecorderRef = React.useRef(null);
+  const chunksRef = React.useRef([]);
   const navigate = useNavigate();
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const mimeType = mediaRecorderRef.current.mimeType;
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+        handleTranscription(audioBlob);
+      };
+
+      mediaRecorderRef.current.start();
+      setRecording(true);
+      setError('');
+    } catch (err) {
+      setError('No se pudo acceder al micrófono. Verifica los permisos.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const handleTranscription = async (audioBlob) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      if (audioBlob.size < 100) throw new Error('El audio es muy corto.');
+      console.log('Enviando audio de síntomas para transcripción...', audioBlob);
+      const data = await aiService.transcribeVoice(audioBlob);
+      console.log('Transcripción recibida:', data);
+      setSymptoms(prev => prev ? `${prev} ${data.text}`.trim() : data.text);
+    } catch (err) {
+      console.error('Error en transcripción:', err);
+      setError(err.message || 'Error en la transcripción por voz.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
@@ -43,7 +96,7 @@ const Triage = () => {
         </button>
 
         <header className="triage-header">
-          <h1>Análisis de Síntomas con IA</h1>
+          <h1>Evaluación de Síntomas con IA</h1>
           <p>Describe cómo te sientes y nuestra IA te ayudará a determinar la prioridad de tu atención.</p>
         </header>
 
@@ -56,7 +109,25 @@ const Triage = () => {
               disabled={loading}
               required
             />
-            <button type="submit" className="btn-primary triage-btn" disabled={loading || !symptoms.trim()}>
+            <div className="triage-controls">
+              <button 
+                type="button" 
+                onClick={recording ? stopRecording : startRecording} 
+                className={`dictate-btn ${recording ? 'recording' : ''}`}
+                disabled={loading}
+              >
+                {recording ? (
+                  <>
+                    <Square size={20} /> Detener Grabación
+                  </>
+                ) : (
+                  <>
+                    <Mic size={20} /> Dictar Síntomas
+                  </>
+                )}
+              </button>
+              
+              <button type="submit" className="btn-primary triage-btn" disabled={loading || !symptoms.trim()}>
               {loading ? (
                 <>
                   <Loader2 className="spinner" size={20} />
@@ -69,7 +140,8 @@ const Triage = () => {
                 </>
               )}
             </button>
-          </form>
+          </div>
+        </form>
         ) : (
           <div className="triage-result animate-fade">
             <div className="priority-badge" style={{ backgroundColor: priorityColors[result.priority] }}>
@@ -154,7 +226,46 @@ const Triage = () => {
           box-shadow: 0 0 0 3px rgba(38, 198, 218, 0.1);
         }
 
-        .triage-btn { width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .triage-controls {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .dictate-btn {
+          flex: 1;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 16px;
+          background: white;
+          border: 1px solid var(--primary);
+          color: var(--primary);
+          transition: var(--transition);
+        }
+
+        .dictate-btn:hover {
+          background: rgba(38, 198, 218, 0.05);
+        }
+
+        .dictate-btn.recording {
+          background: #FFF5F5;
+          border: 1px solid #FC8181;
+          color: #E53E3E;
+          animation: pulse-mini 1.5s infinite;
+        }
+
+        @keyframes pulse-mini {
+          0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.2); }
+          70% { box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+        }
+
+        .triage-btn { flex: 1; height: 56px; display: flex; align-items: center; justify-content: center; gap: 12px; }
 
         .triage-result { display: flex; flex-direction: column; gap: 24px; }
 

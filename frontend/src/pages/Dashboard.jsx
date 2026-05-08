@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Calendar, ClipboardList, Settings, LogOut, User as UserIcon, Mic } from 'lucide-react';
+import { LayoutDashboard, Calendar, ClipboardList, Settings, LogOut, User as UserIcon, Mic, FileText, User } from 'lucide-react';
 import Logo from '../components/Logo';
 import authService from '../services/authService';
 import appointmentService from '../services/appointmentService';
+import adminService from '../services/adminService';
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [adminStats, setAdminStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,18 +22,23 @@ const Dashboard = () => {
     }
     setUser(currentUser);
 
-    const fetchAppointments = async () => {
+    const fetchData = async () => {
       try {
-        const data = await appointmentService.getMyAppointments();
-        setAppointments(data);
+        if (currentUser.role === 'ADMIN') {
+          const stats = await adminService.getStats();
+          setAdminStats(stats);
+        } else {
+          const data = await appointmentService.getMyAppointments();
+          setAppointments(data);
+        }
       } catch (err) {
-        console.error('Error al cargar citas:', err);
+        console.error('Error al cargar datos:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAppointments();
+    fetchData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -38,17 +46,52 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const menuItems = user?.role === 'PATIENT' ? [
-    { icon: <LayoutDashboard size={20} />, label: 'Resumen', active: true, path: '/dashboard' },
-    { icon: <ClipboardList size={20} />, label: 'Triage IA', path: '/triage' },
-    { icon: <Calendar size={20} />, label: 'Mis Citas' },
-    { icon: <Settings size={20} />, label: 'Configuración' },
-  ] : [
-    { icon: <LayoutDashboard size={20} />, label: 'Resumen', active: true, path: '/dashboard' },
-    { icon: <Mic size={20} />, label: 'Notas Médicas', path: '/doctor-console' },
-    { icon: <Calendar size={20} />, label: 'Mi Agenda' },
-    { icon: <Settings size={20} />, label: 'Configuración' },
-  ];
+  const menuItems = {
+    PATIENT: [
+      { icon: <LayoutDashboard size={20} />, label: 'Resumen', active: true, path: '/dashboard' },
+      { icon: <ClipboardList size={20} />, label: 'Evaluación de Síntomas', path: '/triage' },
+      { icon: <Calendar size={20} />, label: 'Mis Citas' },
+      { icon: <FileText size={20} />, label: 'Historia Clínica', path: '/history' },
+      { 
+        icon: <Settings size={20} />, 
+        label: 'Configuración',
+        subItems: [
+          { label: 'Editar Datos', path: '/profile' },
+          { label: 'Ficha Médica', path: '/profile#health' },
+          { label: 'Seguridad', path: '/profile#security' }
+        ]
+      },
+    ],
+    DOCTOR: [
+      { icon: <LayoutDashboard size={20} />, label: 'Resumen', active: true, path: '/dashboard' },
+      { icon: <Mic size={20} />, label: 'Notas Médicas', path: '/doctor-console' },
+      { icon: <Calendar size={20} />, label: 'Mi Agenda' },
+      { icon: <FileText size={20} />, label: 'Historial Pacientes', path: '/history' },
+      { 
+        icon: <Settings size={20} />, 
+        label: 'Configuración',
+        subItems: [
+          { label: 'Mi Perfil', path: '/profile' },
+          { label: 'Seguridad', path: '/security' }
+        ]
+      },
+    ],
+    ADMIN: [
+      { icon: <LayoutDashboard size={20} />, label: 'Panel Control', active: true, path: '/dashboard' },
+      { icon: <User size={20} />, label: 'Usuarios', path: '/users' },
+      { icon: <Calendar size={20} />, label: 'Citas Globales' },
+      { 
+        icon: <Settings size={20} />, 
+        label: 'Configuración',
+        subItems: [
+          { label: 'Perfil Admin', path: '/profile' },
+          { label: 'Ajustes Sistema', path: '/settings' }
+        ]
+      },
+    ]
+  };
+
+  const currentMenu = menuItems[user?.role] || menuItems.PATIENT;
 
   return (
     <div className="dashboard-container">
@@ -59,15 +102,41 @@ const Dashboard = () => {
         </div>
 
         <nav className="sidebar-nav">
-          {menuItems.map((item, index) => (
-            <button
-              key={index}
-              className={`nav-item ${item.active ? 'active' : ''}`}
-              onClick={() => item.path && navigate(item.path)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
+          {currentMenu.map((item, index) => (
+            <React.Fragment key={index}>
+              <button
+                className={`nav-item ${item.active ? 'active' : ''}`}
+                onClick={() => {
+                  if (item.subItems) {
+                    setSettingsOpen(!settingsOpen);
+                  } else if (item.path) {
+                    navigate(item.path);
+                  }
+                }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+                {item.subItems && (
+                  <span style={{ marginLeft: 'auto', transform: settingsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}>
+                    ▼
+                  </span>
+                )}
+              </button>
+              
+              {item.subItems && settingsOpen && (
+                <div className="submenu animate-fade-down">
+                  {item.subItems.map((sub, i) => (
+                    <button 
+                      key={i} 
+                      className="submenu-item"
+                      onClick={() => sub.path && navigate(sub.path)}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </nav>
 
@@ -87,8 +156,12 @@ const Dashboard = () => {
           </div>
           <div className="user-profile">
             <div className="user-info">
-              <span className="user-name">{user?.firstName || 'Usuario'}</span>
-              <span className="user-role">{user?.role === 'PATIENT' ? 'Paciente' : 'Médico'}</span>
+              <span className="user-name">
+                {user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : 'Usuario'}
+              </span>
+              <span className="user-role">
+                {user?.role === 'PATIENT' ? 'Paciente' : user?.role === 'ADMIN' ? 'Administrador' : 'Médico'}
+              </span>
             </div>
             <div className="user-avatar">
               <UserIcon size={24} />
@@ -99,7 +172,7 @@ const Dashboard = () => {
         <section className="content-area">
           <div className="welcome-banner animate-fade">
             <h1>Bienvenido a tu Espacio de Salud</h1>
-            <p>Aquí puedes gestionar tus citas, ver tus resultados de triage y más.</p>
+            <p>Aquí puedes gestionar tus citas, ver tus resultados de evaluación de síntomas y más.</p>
           </div>
 
           <div className="status-grid animate-fade">
@@ -108,7 +181,7 @@ const Dashboard = () => {
               {appointments.length > 0 ? (
                 <>
                   <p className="card-value">
-                    {new Date(appointments[0].date).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(appointments[0].date).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                   </p>
                   <span className="card-desc">
                     {user?.role === 'PATIENT'
@@ -122,7 +195,27 @@ const Dashboard = () => {
               )}
             </div>
 
-            {user?.role === 'PATIENT' ? (
+            {user?.role === 'ADMIN' && adminStats && (
+              <>
+                <div className="status-card highlight-admin">
+                  <h3>Total Pacientes</h3>
+                  <p className="card-value">{adminStats.totalPatients}</p>
+                  <span className="card-desc">Registrados en sistema</span>
+                </div>
+                <div className="status-card">
+                  <h3>Médicos Activos</h3>
+                  <p className="card-value">{adminStats.totalDoctors}</p>
+                  <span className="card-desc">Personal de salud</span>
+                </div>
+                <div className="status-card">
+                  <h3>Citas Totales</h3>
+                  <p className="card-value">{adminStats.totalAppointments}</p>
+                  <span className="card-desc">{adminStats.completedAppointments} Finalizadas</span>
+                </div>
+              </>
+            )}
+
+            {user?.role === 'PATIENT' && (
               <div className="status-card highlight">
                 <h3>Reserva de Atención</h3>
                 <p className="card-value">Agenda hoy tu hora</p>
@@ -135,7 +228,9 @@ const Dashboard = () => {
                   Agendar Nueva Cita
                 </button>
               </div>
-            ) : (
+            )}
+
+            {user?.role === 'DOCTOR' && (
               <div className="status-card highlight">
                 <h3>Notas Médicas</h3>
                 <p className="card-value">Voz a Texto</p>
@@ -151,6 +246,62 @@ const Dashboard = () => {
             )}
           </div>
 
+          {user?.role === 'PATIENT' && (
+            <div className="agenda-section animate-fade">
+              <div className="section-header">
+                <h2>Mis Próximas Citas</h2>
+                <span className="badge">{appointments.filter(a => a.status === 'PENDING').length} Pendientes</span>
+              </div>
+
+              <div className="agenda-table-container">
+                <table className="agenda-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha y Hora</th>
+                      <th>Especialista</th>
+                      <th>Especialidad</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {appointments.filter(a => a.status === 'PENDING').map((apt) => (
+                      <tr key={apt.id}>
+                        <td className="time-cell">
+                          {new Date(apt.date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                        </td>
+                        <td className="patient-cell">
+                          Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                        </td>
+                        <td>{apt.doctor?.specialty}</td>
+                        <td>
+                          <span className={`status-pill ${apt.status.toLowerCase()}`}>
+                            Pendiente
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            className="btn-action secondary"
+                            onClick={() => navigate('/triage', { state: { appointmentId: apt.id } })}
+                          >
+                            Evaluación de Síntomas
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {appointments.filter(a => a.status === 'PENDING').length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-light)' }}>
+                          No tienes citas pendientes. ¡Agenda una nueva!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {user?.role === 'DOCTOR' && (
             <div className="agenda-section animate-fade">
               <div className="section-header">
@@ -164,7 +315,7 @@ const Dashboard = () => {
                     <tr>
                       <th>Hora</th>
                       <th>Paciente</th>
-                      <th>RUT</th>
+                      <th>Motivo</th>
                       <th>Estado</th>
                       <th>Acciones</th>
                     </tr>
@@ -173,24 +324,36 @@ const Dashboard = () => {
                     {appointments.map((apt) => (
                       <tr key={apt.id}>
                         <td className="time-cell">
-                          {new Date(apt.date).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(apt.date).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                         </td>
                         <td className="patient-cell">
                           {apt.patient?.firstName} {apt.patient?.lastName}
                         </td>
-                        <td>{apt.patient?.user?.rut}</td>
+                        <td style={{ fontSize: '13px', color: '#64748B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={apt.reason || 'Sin motivo especificado'}>
+                          {apt.reason || 'Sin motivo'}
+                        </td>
                         <td>
                           <span className={`status-pill ${apt.status.toLowerCase()}`}>
-                            {apt.status === 'PENDING' ? 'Pendiente' : apt.status}
+                            {apt.status === 'PENDING' ? 'Pendiente' : 
+                             apt.status === 'COMPLETED' ? 'Completado' : 
+                             apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
                           </span>
                         </td>
                         <td>
-                          <button
-                            className="btn-action"
-                            onClick={() => navigate('/doctor-console', { state: { appointmentId: apt.id, patient: apt.patient } })}
-                          >
-                            Iniciar Atención
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              className="btn-action"
+                              onClick={() => navigate('/doctor-console', { state: { appointmentId: apt.id, patient: apt.patient, reason: apt.reason } })}
+                            >
+                              Iniciar Atención
+                            </button>
+                            <button
+                              className="btn-action secondary"
+                              onClick={() => navigate('/history', { state: { patientId: apt.patientId, patientName: `${apt.patient?.firstName} ${apt.patient?.lastName}` } })}
+                            >
+                              Ver Historia
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -266,6 +429,41 @@ const Dashboard = () => {
           color: #FC8181;
         }
 
+        .submenu {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding-left: 48px;
+          margin-top: -4px;
+          margin-bottom: 8px;
+        }
+
+        .submenu-item {
+          background: transparent;
+          border: none;
+          color: #A0AEC0;
+          text-align: left;
+          padding: 8px 12px;
+          font-size: 14px;
+          border-radius: 8px;
+          transition: var(--transition);
+          cursor: pointer;
+        }
+
+        .submenu-item:hover {
+          color: white;
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .animate-fade-down {
+          animation: fade-down 0.3s ease-out;
+        }
+
+        @keyframes fade-down {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         .main-content {
           flex: 1;
           display: flex;
@@ -316,8 +514,20 @@ const Dashboard = () => {
           background: linear-gradient(135deg, var(--secondary), var(--secondary-light));
           padding: 40px;
           border-radius: 24px;
-          color: white;
+          color: #FFFFFF;
           box-shadow: var(--shadow-premium);
+          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .welcome-banner h1 {
+          color: #FFFFFF;
+          font-weight: 800;
+          margin-bottom: 12px;
+        }
+
+        .welcome-banner p {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 18px;
         }
 
         .status-grid {
@@ -362,6 +572,14 @@ const Dashboard = () => {
           background: #F1F5F9; color: var(--secondary); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; transition: var(--transition); 
         }
         .btn-action:hover { background: var(--primary); color: white; }
+        .btn-action.secondary { background: #EEF2FF; color: #4338CA; }
+        .btn-action.secondary:hover { background: #4338CA; color: white; }
+
+        .highlight-admin {
+          border-left: 5px solid #EF4444;
+          background: #FEF2F2 !important;
+        }
+        .admin-label { color: #B91C1C; font-weight: 700; }
       ` }} />
     </div>
   );

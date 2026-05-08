@@ -38,6 +38,18 @@ const authService = {
 
   getToken: () => {
     return localStorage.getItem('token');
+  },
+
+  changePassword: async (passwords) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/auth/change-password`, passwords, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al cambiar la contraseña' };
+    }
   }
 };
 

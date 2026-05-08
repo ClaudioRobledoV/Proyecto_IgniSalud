@@ -47,6 +47,18 @@ const aiRoutes = require('./routes/aiRoutes');
 // Usamos las rutas con el prefijo /api/ai
 app.use('/api/ai', aiRoutes);
 
+// Importamos las rutas de registros médicos
+const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
+
+// Usamos las rutas con el prefijo /api/medical-records
+app.use('/api/medical-records', medicalRecordRoutes);
+
+// Importamos las rutas de administración
+const adminRoutes = require('./routes/adminRoutes');
+
+// Usamos las rutas con el prefijo /api/admin
+app.use('/api/admin', adminRoutes);
+
 // --- RUTAS BASE ---
 // Ruta de prueba para verificar que el servidor está vivo y funcionando correctamente.
 // Esta ruta nos servirá más adelante para comprobar si el backend está en línea.

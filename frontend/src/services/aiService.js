@@ -36,7 +36,7 @@ const aiService = {
     try {
       const token = authService.getToken();
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'note.wav');
+      formData.append('audio', audioBlob, 'audio_record');
 
       const response = await axios.post(
         `${API_URL}/ai/transcribe`,
@@ -64,6 +64,45 @@ const aiService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al guardar la nota médica' };
+    }
+  },
+
+  getMedicalRecord: async (appointmentId) => {
+    try {
+      const token = authService.getToken();
+      const response = await axios.get(
+        `${API_URL}/ai/record/${appointmentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener el registro médico' };
+    }
+  },
+
+  getHistory: async () => {
+    try {
+      const token = authService.getToken();
+      const response = await axios.get(
+        `${API_URL}/medical-records/my-history`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener el historial clínico' };
+    }
+  },
+
+  getPatientHistory: async (patientId) => {
+    try {
+      const token = authService.getToken();
+      const response = await axios.get(
+        `${API_URL}/medical-records/patient/${patientId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener el historial del paciente' };
     }
   }
 };

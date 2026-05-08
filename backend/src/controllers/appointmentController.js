@@ -3,7 +3,7 @@ const prisma = require('../config/prisma');
 // Crear una nueva cita (RF07)
 exports.createAppointment = async (req, res) => {
   try {
-    const { doctorId, date } = req.body;
+    const { doctorId, date, reason } = req.body;
     
     // 1. Verificar si el paciente tiene perfil (userId viene de req.user.userId del middleware protect)
     const patient = await prisma.patientProfile.findUnique({
@@ -42,7 +42,8 @@ exports.createAppointment = async (req, res) => {
         patientId: patient.id,
         doctorId: doctor.id,
         date: new Date(date),
-        status: 'PENDING'
+        status: 'PENDING',
+        reason
       },
       include: {
         doctor: true,

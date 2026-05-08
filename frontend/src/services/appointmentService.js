@@ -4,12 +4,12 @@ import authService from './authService';
 const API_URL = 'http://localhost:4001/api';
 
 const appointmentService = {
-  createAppointment: async (doctorId, date) => {
+  createAppointment: async (doctorId, date, reason) => {
     try {
       const token = authService.getToken();
       const response = await axios.post(
         `${API_URL}/appointments`,
-        { doctorId, date },
+        { doctorId, date, reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;

@@ -15,7 +15,13 @@ router.post('/analyze', aiController.getTriageAnalysis);
 // Vincular los resultados a una cita
 router.post('/link', aiController.saveTriageToAppointment);
 
-// Transcribir voz a texto (Solo médicos, por ejemplo RF12)
-router.post('/transcribe', authorize('DOCTOR'), upload.single('audio'), aiController.transcribeVoice);
+// Transcribir voz a texto (Doctores en consola, Pacientes en Triage)
+router.post('/transcribe', upload.single('audio'), aiController.transcribeVoice);
+
+// Guardar nota médica final y completar cita (RF12)
+router.post('/save-note', authorize('DOCTOR'), aiController.saveMedicalNote);
+
+// Obtener registro médico por cita
+router.get('/record/:appointmentId', aiController.getMedicalRecordByAppointment);
 
 module.exports = router;

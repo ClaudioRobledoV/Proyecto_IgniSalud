@@ -2,32 +2,21 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        rut: true,
-        role: true,
-        patientProfile: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
-        doctorProfile: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        }
-      }
-    });
-    console.log(JSON.stringify(users, null, 2));
-  } catch (error) {
-    console.error(error);
-  } finally {
-    await prisma.$disconnect();
-  }
+  const users = await prisma.user.findMany({
+    include: {
+      patientProfile: true,
+      doctorProfile: true
+    }
+  });
+
+  console.log('--- USUARIOS REGISTRADOS ---');
+  users.forEach(u => {
+    const profile = u.patientProfile || u.doctorProfile;
+    const name = profile ? `${profile.firstName} ${profile.lastName}` : 'Sin nombre';
+    console.log(`RUT: ${u.rut} | Rol: ${u.role} | Nombre: ${name}`);
+  });
 }
 
-main();
+main()
+  .catch(e => console.error(e))
+  .finally(async () => await prisma.$disconnect());

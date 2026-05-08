@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mic, Square, Save, FileText, Loader2, ArrowLeft, Upload } from 'lucide-react';
 import aiService from '../services/aiService';
@@ -12,7 +12,21 @@ const DoctorConsole = () => {
   const chunksRef = useRef([]);
   const navigate = useNavigate();
   const location = useLocation();
-  const { patient, appointmentId } = location.state || {};
+  const [triageData, setTriageData] = useState(null);
+  const { patient, appointmentId, reason } = location.state || {};
+
+  useEffect(() => {
+    const fetchTriage = async () => {
+      if (!appointmentId) return;
+      try {
+        const data = await aiService.getMedicalRecord(appointmentId);
+        setTriageData(data);
+      } catch (err) {
+        console.log('No se encontró triage previo o error al cargar:', err);
+      }
+    };
+    fetchTriage();
+  }, [appointmentId]);
 
   const startRecording = async () => {
     try {
@@ -25,11 +39,13 @@ const DoctorConsole = () => {
       };
 
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const mimeType = mediaRecorderRef.current.mimeType;
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
         handleTranscription(audioBlob);
       };
 
       mediaRecorderRef.current.start();
+      console.log('Grabación iniciada correctamente.');
       setRecording(true);
       setError('');
     } catch (err) {
@@ -57,6 +73,7 @@ const DoctorConsole = () => {
 
       console.log('Enviando audio para transcripción...', audioBlob);
       const data = await aiService.transcribeVoice(audioBlob);
+      console.log('Respuesta recibida del backend:', data);
       setNoteText(prev => prev ? `${prev}\n${data.text}` : data.text);
     } catch (err) {
       console.error('Error en transcripción:', err);
@@ -101,6 +118,25 @@ const DoctorConsole = () => {
           {patient && <p style={{ color: 'var(--primary-dark)', fontWeight: '600' }}>Paciente RUT: {patient.user?.rut}</p>}
           <p>Graba o sube un audio de la consulta para generar una transcripción automática.</p>
         </header>
+
+        {reason && (
+          <div className="reason-info-box animate-fade">
+            <span className="reason-title">Motivo de Consulta:</span>
+            <p className="reason-text">{reason}</p>
+          </div>
+        )}
+
+        {triageData && (
+          <div className="triage-info-box animate-fade">
+            <div className="triage-badge-row">
+              <span className="triage-title">Resumen de Triage:</span>
+              <span className={`priority-pill ${triageData.priority?.toLowerCase()}`}>
+                Prioridad: {triageData.priority}
+              </span>
+            </div>
+            <p className="triage-symptoms">{triageData.symptoms}</p>
+          </div>
+        )}
 
         <div className="note-section animate-fade">
           <div className="section-header">
@@ -317,6 +353,68 @@ const DoctorConsole = () => {
         }
 
         .error-text { color: #E53E3E; text-align: center; margin-top: 16px; font-size: 14px; }
+
+        .triage-info-box {
+          background: #EEF2FF;
+          border-left: 4px solid #6366F1;
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 24px;
+        }
+
+        .triage-badge-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .triage-title {
+          font-weight: 700;
+          color: #4338CA;
+          font-size: 14px;
+          text-transform: uppercase;
+        }
+
+        .priority-pill {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .priority-pill.high { background: #FEE2E2; color: #B91C1C; }
+        .priority-pill.medium { background: #FEF3C7; color: #B45309; }
+        .priority-pill.low { background: #D1FAE5; color: #047857; }
+
+        .triage-symptoms {
+          font-size: 15px;
+          color: #374151;
+          line-height: 1.5;
+          font-style: italic;
+        }
+
+        .reason-info-box {
+          background: #F0FDF4;
+          border-left: 4px solid #22C55E;
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 16px;
+        }
+        .reason-title {
+          font-weight: 700;
+          color: #15803D;
+          font-size: 14px;
+          text-transform: uppercase;
+          display: block;
+          margin-bottom: 4px;
+        }
+        .reason-text {
+          font-size: 16px;
+          color: #1E293B;
+          font-weight: 500;
+        }
       ` }} />
     </div>
   );
