@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, User, Shield, Key, Trash2, Check, X } from 'lucide-react';
+import { ArrowLeft, Search, Shield, Key, Trash2, Loader2 } from 'lucide-react';
 import adminService from '../services/adminService';
 
 const UserManagement = () => {
@@ -26,21 +26,20 @@ const UserManagement = () => {
     }
   };
 
-  const handleRoleChange = async (userId, currentRole) => {
-    const roles = ['PATIENT', 'DOCTOR', 'ADMIN'];
-    const newRole = prompt(`Cambiar rol de "${currentRole}" a: (PATIENT, DOCTOR, ADMIN)`, currentRole);
-
-    if (newRole && roles.includes(newRole.toUpperCase()) && newRole.toUpperCase() !== currentRole) {
-      setActionLoading(userId);
-      try {
-        await adminService.updateUserRole(userId, newRole.toUpperCase());
-        fetchUsers();
-        alert('Rol actualizado.');
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        setActionLoading(null);
-      }
+  const handleRoleChange = async (userId, newRole) => {
+    if (!newRole) return;
+    
+    setActionLoading(userId);
+    try {
+      await adminService.updateUserRole(userId, newRole);
+      // Actualizar el estado local para reflejar el cambio inmediato
+      setUsers(prevUsers => 
+        prevUsers.map(u => u.id === userId ? { ...u, role: newRole } : u)
+      );
+    } catch (err) {
+      alert('Error al actualizar el rol: ' + err.message);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -60,18 +59,27 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este usuario de forma permanente? Esta acción no se puede deshacer.')) {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
       setActionLoading(userId);
       try {
         await adminService.deleteUser(userId);
         setUsers(users.filter(u => u.id !== userId));
-        alert('Usuario eliminado.');
       } catch (err) {
         alert(err.message);
       } finally {
         setActionLoading(null);
       }
     }
+  };
+
+  // Función para traducir roles
+  const translateRole = (role) => {
+    const roles = {
+      'PATIENT': 'Paciente',
+      'DOCTOR': 'Médico',
+      'ADMIN': 'Administrador'
+    };
+    return roles[role] || role;
   };
 
   const filteredUsers = users.filter(user => 
@@ -112,7 +120,7 @@ const UserManagement = () => {
                 <tr>
                   <th>RUT</th>
                   <th>Nombre completo</th>
-                  <th>Rol</th>
+                  <th>Rol / Nivel de Acceso</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -130,20 +138,22 @@ const UserManagement = () => {
                       )}
                     </td>
                     <td>
-                      <span className={`role-pill ${user.role.toLowerCase()}`}>
-                        {user.role}
-                      </span>
+                      <div className="role-selector-container">
+                        <select 
+                          className={`role-select ${user.role.toLowerCase()}`}
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          disabled={actionLoading === user.id}
+                        >
+                          <option value="PATIENT">Paciente</option>
+                          <option value="DOCTOR">Médico</option>
+                          <option value="ADMIN">Administrador</option>
+                        </select>
+                        {actionLoading === user.id && <Loader2 size={16} className="spinner" />}
+                      </div>
                     </td>
                     <td>
                       <div className="action-btns">
-                        <button 
-                          className="btn-icon" 
-                          title="Cambiar Rol" 
-                          onClick={() => handleRoleChange(user.id, user.role)}
-                          disabled={actionLoading === user.id}
-                        >
-                          <Shield size={18} />
-                        </button>
                         <button 
                           className="btn-icon" 
                           title="Restablecer Contraseña"
@@ -192,12 +202,26 @@ const UserManagement = () => {
         .users-table td { padding: 16px 24px; border-bottom: 1px solid #F1F5F9; }
 
         .rut-cell { font-weight: 700; color: var(--secondary); }
-        .admin-label { color: var(--primary-dark); font-weight: 700; font-style: italic; }
+        .admin-label { color: var(--primary-dark); font-weight: 700; }
 
-        .role-pill { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
-        .role-pill.patient { background: #E0F2FE; color: #0369A1; }
-        .role-pill.doctor { background: #D1FAE5; color: #047857; }
-        .role-pill.admin { background: #FEE2E2; color: #B91C1C; }
+        .role-selector-container { display: flex; align-items: center; gap: 8px; }
+        
+        .role-select {
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          border: 1px solid #E2E8F0;
+          cursor: pointer;
+          outline: none;
+          transition: var(--transition);
+        }
+
+        .role-select.patient { background: #E0F2FE; color: #0369A1; }
+        .role-select.doctor { background: #D1FAE5; color: #047857; }
+        .role-select.admin { background: #FEE2E2; color: #B91C1C; }
+        
+        .role-select:focus { border-color: var(--primary); }
 
         .action-btns { display: flex; gap: 8px; }
         .btn-icon { background: #F1F5F9; border: none; padding: 8px; border-radius: 8px; color: var(--secondary); cursor: pointer; transition: var(--transition); }
@@ -206,6 +230,9 @@ const UserManagement = () => {
         .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .loading-state, .empty-row { padding: 40px; text-align: center; color: var(--text-light); }
+        
+        .spinner { animation: spin 1s linear infinite; color: var(--primary); }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}} />
     </div>
   );
