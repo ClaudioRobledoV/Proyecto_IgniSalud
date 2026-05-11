@@ -129,13 +129,14 @@ const UserManagement = () => {
                   <tr key={user.id}>
                     <td className="rut-cell">{user.rut}</td>
                     <td>
-                      {user.role === 'PATIENT' ? (
-                        `${user.patientProfile?.firstName || ''} ${user.patientProfile?.lastName || ''}`
-                      ) : user.role === 'DOCTOR' ? (
-                        `Dr. ${user.doctorProfile?.firstName || ''} ${user.doctorProfile?.lastName || ''}`
-                      ) : (
-                        <span className="admin-label">Administrador Principal</span>
-                      )}
+                      {(() => {
+                        const profile = user.patientProfile || user.doctorProfile;
+                        const fullName = profile ? `${profile.firstName} ${profile.lastName}` : 'Sin nombre';
+                        
+                        if (user.role === 'ADMIN') return <span className="admin-label">Administrador: {fullName}</span>;
+                        if (user.role === 'DOCTOR') return <strong>Dr. {fullName}</strong>;
+                        return fullName;
+                      })()}
                     </td>
                     <td>
                       <div className="role-selector-container">
