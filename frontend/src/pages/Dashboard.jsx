@@ -86,7 +86,7 @@ const Dashboard = () => {
                   <h3>Médicos Activos</h3>
                   <p className="card-value">{adminStats.totalDoctors}</p>
                 </div>
-                <div className="status-card">
+                <div className="status-card" onClick={() => navigate('/admin/appointments')} style={{cursor: 'pointer'}}>
                   <h3>Citas Totales</h3>
                   <p className="card-value">{adminStats.totalAppointments}</p>
                 </div>
@@ -107,9 +107,14 @@ const Dashboard = () => {
                 </button>
               )}
               {user?.role === 'ADMIN' && (
-                <button className="btn-primary" onClick={() => navigate('/users')} style={{width: '100%', marginTop: '10px'}}>
-                  Gestionar Usuarios
-                </button>
+                <>
+                  <button className="btn-primary" onClick={() => navigate('/users')} style={{width: '100%', marginTop: '10px'}}>
+                    Gestionar Usuarios
+                  </button>
+                  <button className="btn-primary" onClick={() => navigate('/admin/appointments')} style={{width: '100%', marginTop: '10px', background: 'var(--secondary)'}}>
+                    Ver Citas Globales
+                  </button>
+                </>
               )}
             </div>
           </div>

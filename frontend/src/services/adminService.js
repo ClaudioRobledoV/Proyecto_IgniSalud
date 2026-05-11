@@ -44,6 +44,15 @@ const adminService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  getAllAppointments: async () => {
+    try {
+      const response = await api.get(`/admin/appointments`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

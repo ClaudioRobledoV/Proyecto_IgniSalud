@@ -46,7 +46,7 @@ const Sidebar = ({ user, activePath }) => {
     ADMIN: [
       { icon: <LayoutDashboard size={20} />, label: 'Panel Control', path: '/dashboard' },
       { icon: <User size={20} />, label: 'Usuarios', path: '/users' },
-      { icon: <Calendar size={20} />, label: 'Citas Globales' },
+      { icon: <Calendar size={20} />, label: 'Citas Globales', path: '/admin/appointments' },
       { 
         icon: <Settings size={20} />, 
         label: 'Configuración',

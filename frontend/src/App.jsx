@@ -13,6 +13,7 @@ import UserManagement from './pages/UserManagement'
 import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import GlobalAppointments from './pages/GlobalAppointments'
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }) => {
@@ -73,6 +74,7 @@ function App() {
         <Route path="/history" element={<PrivateRoute><MedicalHistory /></PrivateRoute>} />
         <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/admin/appointments" element={<PrivateRoute><GlobalAppointments /></PrivateRoute>} />
 
         {/* Redirección por defecto */}
         <Route path="/" element={

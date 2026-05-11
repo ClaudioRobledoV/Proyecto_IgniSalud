@@ -87,3 +87,17 @@ exports.deleteUser = asyncHandler(async (req, res) => {
 
   res.json({ message: 'Usuario eliminado permanentemente.' });
 });
+
+/**
+ * 6. Obtener todas las citas del sistema (Citas Globales)
+ */
+exports.getAllAppointments = asyncHandler(async (req, res) => {
+  const appointments = await prisma.appointment.findMany({
+    include: {
+      patient: true,
+      doctor: true
+    },
+    orderBy: { date: 'desc' }
+  });
+  res.json(appointments);
+});

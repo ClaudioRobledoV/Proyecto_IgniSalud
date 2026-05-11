@@ -19,6 +19,9 @@ router.post('/update-role', adminController.updateUserRole);
 // POST /api/admin/reset-password
 router.post('/reset-password', adminController.resetUserPassword);
 
+// GET /api/admin/appointments
+router.get('/appointments', adminController.getAllAppointments);
+
 // DELETE /api/admin/users/:userId
 router.delete('/users/:userId', adminController.deleteUser);
 
