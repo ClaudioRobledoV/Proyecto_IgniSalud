@@ -138,8 +138,11 @@ const Profile = () => {
                 </button>
 
                 <header className="profile-header">
-                    <h1>Configuración: {isDoctor ? 'Médico' : 'Paciente'}</h1>
-                    <p>Gestiona tu información {isDoctor ? 'profesional' : 'personal'} y seguridad.</p>
+                    <h1>Configuración: {
+                        currentUser?.role === 'ADMIN' ? 'Administrador' : 
+                        currentUser?.role === 'DOCTOR' ? 'Médico' : 'Paciente'
+                    }</h1>
+                    <p>Gestiona tu información personal y seguridad.</p>
                 </header>
 
                 <div className="profile-tabs">
