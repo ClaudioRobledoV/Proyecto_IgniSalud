@@ -53,6 +53,53 @@ const adminService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Ajustes del Sistema
+  getSystemSettings: async () => {
+    try {
+      const response = await api.get(`/admin/settings`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateSystemSettings: async (settings) => {
+    try {
+      const response = await api.put(`/admin/settings`, settings);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Gestión de Especialidades
+  getSpecialties: async () => {
+    try {
+      const response = await api.get(`/admin/specialties`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  createSpecialty: async (name) => {
+    try {
+      const response = await api.post(`/admin/specialties`, { name });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteSpecialty: async (id) => {
+    try {
+      const response = await api.delete(`/admin/specialties/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

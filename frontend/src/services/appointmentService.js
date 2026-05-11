@@ -46,6 +46,15 @@ const appointmentService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  getSpecialties: async () => {
+    try {
+      const response = await api.get(`/admin/specialties`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

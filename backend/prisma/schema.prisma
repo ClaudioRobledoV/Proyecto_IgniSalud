@@ -108,3 +108,19 @@ model MedicalRecord {
   doctor        DoctorProfile  @relation(fields: [doctorId], references: [id])
   appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
 }
+
+model Specialty {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model SystemSettings {
+  id                    String   @id @default("singleton")
+  appointmentDuration   Int      @default(20) // en minutos
+  clinicOpenTime        String   @default("08:00")
+  clinicCloseTime       String   @default("20:00")
+  aiTranscriptionEnabled Boolean  @default(true)
+  sessionTimeout        Int      @default(30) // en minutos
+  updatedAt             DateTime @updatedAt
+}

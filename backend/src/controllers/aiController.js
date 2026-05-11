@@ -78,6 +78,15 @@ exports.transcribeVoice = asyncHandler(async (req, res) => {
     throw new Error("No se subió ningún archivo de audio.");
   }
 
+  // Verificar si la IA está activada en los ajustes del sistema
+  const settings = await prisma.systemSettings.findUnique({ where: { id: 'singleton' } });
+  if (settings && !settings.aiTranscriptionEnabled) {
+    // Limpiar el archivo temporal para no llenar el disco
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(503); // Service Unavailable
+    throw new Error("El servicio de transcripción automática ha sido desactivado por la administración.");
+  }
+
   console.log("Iniciando transcripción con Gemini (gemini-2.5-flash)...");
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 

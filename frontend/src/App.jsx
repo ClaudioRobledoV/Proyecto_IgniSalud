@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import GlobalAppointments from './pages/GlobalAppointments'
+import SystemSettings from './pages/SystemSettings'
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }) => {
@@ -28,28 +29,43 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
-  
+
   useEffect(() => {
-    // Configuración del tiempo de inactividad (30 minutos)
-    const INACTIVITY_LIMIT = 30 * 60 * 1000; 
     let timeoutId;
+    let inactivityLimit = 30 * 60 * 1000; // 30 min por defecto
+
+    // Función para obtener el tiempo de sesión desde la base de datos
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://ignisalud-backend.onrender.com/api'}/admin/settings`, {
+          headers: { 'Authorization': `Bearer ${authService.getToken()}` }
+        });
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings && settings.sessionTimeout) {
+            inactivityLimit = settings.sessionTimeout * 60 * 1000;
+            console.log(`Sesión configurada: ${settings.sessionTimeout} minutos.`);
+          }
+        }
+      } catch (err) {
+        console.warn("Usando tiempo de sesión por defecto (30m).");
+      }
+    };
 
     const resetTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
-      
-      // Solo activamos el temporizador si hay un usuario logueado
       if (authService.getToken()) {
         timeoutId = setTimeout(() => {
-          console.warn("Cerrando sesión por inactividad...");
           authService.logout();
           window.location.href = '/login?expired=true';
-        }, INACTIVITY_LIMIT);
+        }, inactivityLimit);
       }
     };
 
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     events.forEach(event => window.addEventListener(event, resetTimer));
-    resetTimer();
+    
+    fetchSettings().then(() => resetTimer());
 
     return () => {
       events.forEach(event => window.removeEventListener(event, resetTimer));
@@ -75,6 +91,7 @@ function App() {
         <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/admin/appointments" element={<PrivateRoute><GlobalAppointments /></PrivateRoute>} />
+        <Route path="/settings" element={<PrivateRoute><SystemSettings /></PrivateRoute>} />
 
         {/* Redirección por defecto */}
         <Route path="/" element={
