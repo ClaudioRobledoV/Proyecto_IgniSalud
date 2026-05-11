@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, User, Clock, CheckCircle, ArrowLeft, Loader2, CalendarDays, Filter } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle, ArrowLeft, Loader2, CalendarDays } from 'lucide-react';
 import appointmentService from '../services/appointmentService';
 
 const Booking = () => {
-  const [specialties, setSpecialties] = useState([]);
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [allDoctors, setAllDoctors] = useState([]);
-  const [filteredDoctors, setFilteredDoctors] = useState([]);
-  
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [date, setDate] = useState('');
@@ -21,37 +17,22 @@ const Booking = () => {
   
   const navigate = useNavigate();
 
-  // 1. Cargar Datos Iniciales (Especialidades y Médicos)
+  // 1. Cargar Médicos
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchDoctors = async () => {
       try {
-        const [specs, docs] = await Promise.all([
-          appointmentService.getSpecialties(),
-          appointmentService.getDoctors()
-        ]);
-        setSpecialties(specs);
-        setAllDoctors(docs);
+        const data = await appointmentService.getDoctors();
+        setDoctors(data);
       } catch (err) {
-        setError('No se pudo cargar la información inicial.');
+        setError('No se pudo cargar la lista de médicos.');
       } finally {
         setLoading(false);
       }
     };
-    fetchInitialData();
+    fetchDoctors();
   }, []);
 
-  // 2. Filtrar Médicos por Especialidad
-  useEffect(() => {
-    if (selectedSpecialty) {
-      const filtered = allDoctors.filter(doc => doc.specialty === selectedSpecialty);
-      setFilteredDoctors(filtered);
-      setSelectedDoctor(''); // Resetear médico si cambia la especialidad
-    } else {
-      setFilteredDoctors([]);
-    }
-  }, [selectedSpecialty, allDoctors]);
-
-  // 3. Cargar Slots cuando cambie Doctor o Fecha
+  // 2. Cargar Slots cuando cambie Doctor o Fecha
   useEffect(() => {
     if (selectedDoctor && date) {
       const fetchSlots = async () => {
@@ -113,45 +94,28 @@ const Booking = () => {
 
         <div className="booking-steps">
           
-          {/* Paso 1: Especialidad */}
+          {/* Paso 1: Médico */}
           <div className="step-field">
-            <label><Filter size={16} /> 1. ¿Qué especialidad buscas?</label>
-            <select 
-              value={selectedSpecialty} 
-              onChange={(e) => setSelectedSpecialty(e.target.value)}
-              className="booking-select"
-            >
-              <option value="">-- Selecciona una especialidad --</option>
-              {specialties.map(s => (
-                <option key={s.id} value={s.name}>{s.name}</option>
-              ))}
-            </select>
+            <label><User size={16} /> 1. Selecciona un Especialista</label>
+            {loading ? <div className="loading-small"><Loader2 className="spinner" /> Cargando...</div> : (
+              <select 
+                value={selectedDoctor} 
+                onChange={(e) => setSelectedDoctor(e.target.value)}
+                className="booking-select"
+              >
+                <option value="">-- Elige un doctor --</option>
+                {doctors.map(doc => (
+                  <option key={doc.id} value={doc.id}>
+                    Dr. {doc.firstName} {doc.lastName} {doc.specialty ? `(${doc.specialty})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
-          {/* Paso 2: Médico */}
-          <div className={`step-field ${!selectedSpecialty ? 'disabled' : ''}`}>
-            <label><User size={16} /> 2. Selecciona un Especialista</label>
-            <select 
-              value={selectedDoctor} 
-              onChange={(e) => setSelectedDoctor(e.target.value)}
-              className="booking-select"
-              disabled={!selectedSpecialty}
-            >
-              <option value="">-- Elige un doctor --</option>
-              {filteredDoctors.map(doc => (
-                <option key={doc.id} value={doc.id}>
-                  Dr. {doc.firstName} {doc.lastName}
-                </option>
-              ))}
-              {selectedSpecialty && filteredDoctors.length === 0 && (
-                <option disabled>No hay médicos en esta especialidad</option>
-              )}
-            </select>
-          </div>
-
-          {/* Paso 3: Fecha */}
+          {/* Paso 2: Fecha */}
           <div className={`step-field ${!selectedDoctor ? 'disabled' : ''}`}>
-            <label><CalendarDays size={16} /> 3. Elige el Día</label>
+            <label><CalendarDays size={16} /> 2. Elige el Día</label>
             <input 
               type="date" 
               value={date}
@@ -162,9 +126,9 @@ const Booking = () => {
             />
           </div>
 
-          {/* Paso 4: Horarios */}
+          {/* Paso 3: Horarios */}
           <div className={`step-field ${!date ? 'disabled' : ''}`}>
-            <label><Clock size={16} /> 4. Selecciona el Horario</label>
+            <label><Clock size={16} /> 3. Selecciona el Horario</label>
             {loadingSlots ? (
               <div className="slots-loading"><Loader2 className="spinner" /> Buscando horas...</div>
             ) : date ? (
@@ -188,9 +152,9 @@ const Booking = () => {
             )}
           </div>
 
-          {/* Paso 5: Motivo */}
+          {/* Paso 4: Motivo */}
           <div className={`step-field ${!selectedSlot ? 'disabled' : ''}`}>
-            <label>5. Motivo de la Consulta (Opcional)</label>
+            <label>4. Motivo de la Consulta (Opcional)</label>
             <textarea 
               value={reason}
               onChange={(e) => setReason(e.target.value)}
