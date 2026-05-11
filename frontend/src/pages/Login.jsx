@@ -24,7 +24,11 @@ const Login = () => {
       await authService.login(rut, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesión');
+      if (err.response && err.response.status === 401) {
+        setError('RUT o contraseña incorrectos. Por favor, inténtalo de nuevo.');
+      } else {
+        setError(err.message || 'Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
