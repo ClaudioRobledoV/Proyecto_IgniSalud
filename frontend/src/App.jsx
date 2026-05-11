@@ -14,6 +14,18 @@ import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
+// Componente para proteger rutas privadas
+const PrivateRoute = ({ children }) => {
+  const isAuthenticated = !!authService.getToken();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+// Componente para evitar entrar al login si ya estás autenticado
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = !!authService.getToken();
+  return isAuthenticated ? <Navigate to="/dashboard" /> : children;
+};
+
 function App() {
   
   useEffect(() => {
@@ -34,21 +46,12 @@ function App() {
       }
     };
 
-    // Eventos que reinician el contador
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    
-    events.forEach(event => {
-      window.addEventListener(event, resetTimer);
-    });
-
-    // Iniciar el contador al cargar
+    events.forEach(event => window.addEventListener(event, resetTimer));
     resetTimer();
 
     return () => {
-      // Limpiar al desmontar
-      events.forEach(event => {
-        window.removeEventListener(event, resetTimer);
-      });
+      events.forEach(event => window.removeEventListener(event, resetTimer));
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
@@ -56,18 +59,25 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Rutas Públicas */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/triage" element={<Triage />} />
-        <Route path="/doctor-console" element={<DoctorConsole />} />
-        <Route path="/booking" element={<Booking />} />
-        <Route path="/history" element={<MedicalHistory />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/" element={<Navigate to="/login" />} />
+
+        {/* Rutas Privadas (Protegidas) */}
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/triage" element={<PrivateRoute><Triage /></PrivateRoute>} />
+        <Route path="/doctor-console" element={<PrivateRoute><DoctorConsole /></PrivateRoute>} />
+        <Route path="/booking" element={<PrivateRoute><Booking /></PrivateRoute>} />
+        <Route path="/history" element={<PrivateRoute><MedicalHistory /></PrivateRoute>} />
+        <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+
+        {/* Redirección por defecto */}
+        <Route path="/" element={
+          authService.getToken() ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+        } />
       </Routes>
     </Router>
   )
