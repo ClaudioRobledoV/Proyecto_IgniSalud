@@ -1,223 +1,156 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const prisma = require('../config/prisma');
 const fs = require('fs');
+const asyncHandler = require('../middleware/asyncHandler');
 
 // Configuración de Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: "v1beta" });
 
-// Función principal de Triage (RF10, RF11)
-exports.getTriageAnalysis = async (req, res) => {
-  try {
-    const { symptomsInput } = req.body;
+/**
+ * Función principal de Triage (RF10, RF11)
+ * Limpieza: Uso de gemini-2.5-flash y manejo de errores centralizado.
+ */
+exports.getTriageAnalysis = asyncHandler(async (req, res) => {
+  const { symptomsInput } = req.body;
 
-    if (!symptomsInput) {
-      return res.status(400).json({ message: "Por favor, describe tus síntomas." });
-    }
-
-    if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ message: "Configuración incompleta: Falta la API Key de Gemini." });
-    }
-
-    // 1. Configurar el modelo (usamos gemini-1.5-flash por ser rápido y eficiente)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // 2. Definir el "Prompt" (las instrucciones que le damos a la IA)
-    const prompt = `
-      Eres un asistente médico experto en triage inicial. 
-      Analiza el siguiente texto de un paciente y responde ÚNICAMENTE en formato JSON plano:
-      {
-        "symptomsSummary": "Breve resumen médico de los síntomas",
-        "priority": "LOW" | "MEDIUM" | "HIGH",
-        "reasoning": "Explicación breve del porqué de la prioridad"
-      }
-
-      Texto del paciente: "${symptomsInput}"
-    `;
-
-    // 3. Llamar a la IA
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    // 4. Limpiar y parsear el JSON (Gemini a veces rodea el JSON con ```json)
-    const cleanJson = text.replace(/```json|```/g, "").trim();
-    const analysis = JSON.parse(cleanJson);
-
-    res.json({
-      message: "Análisis de IA completado",
-      analysis
-    });
-
-  } catch (error) {
-    console.error("Error en Triage IA:", error);
-    res.status(500).json({ message: "Error al procesar el análisis de síntomas con IA." });
+  if (!symptomsInput) {
+    res.status(400);
+    throw new Error("Por favor, describe tus síntomas.");
   }
-};
 
-// Vincular el resultado a una cita y crear registro médico (RF10)
-exports.saveTriageToAppointment = async (req, res) => {
-    try {
-        const { appointmentId, symptomsSummary, priority } = req.body;
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        const appointment = await prisma.appointment.findUnique({
-            where: { id: appointmentId }
-        });
-
-        if (!appointment) {
-            return res.status(404).json({ message: "Cita no encontrada." });
-        }
-
-        // Crear o actualizar historial médico vinculado a la cita
-        const record = await prisma.medicalRecord.upsert({
-            where: { appointmentId: appointmentId },
-            update: {
-                symptoms: symptomsSummary,
-                priority: priority
-            },
-            create: {
-                appointmentId: appointmentId,
-                patientId: appointment.patientId,
-                doctorId: appointment.doctorId,
-                symptoms: symptomsSummary,
-                priority: priority
-            }
-        });
-
-        res.json({
-            message: "Triage guardado exitosamente en la ficha médica.",
-            record
-        });
-    } catch (error) {
-        console.error("Error guardando triage:", error);
-        res.status(500).json({ message: "Error al vincular el triage con la cita." });
+  const prompt = `
+    Eres un asistente médico experto en triage inicial. 
+    Analiza el siguiente texto de un paciente y responde ÚNICAMENTE en formato JSON plano:
+    {
+      "symptomsSummary": "Breve resumen médico de los síntomas",
+      "priority": "LOW" | "MEDIUM" | "HIGH",
+      "reasoning": "Explicación breve del porqué de la prioridad"
     }
-};
+    Texto del paciente: "${symptomsInput}"
+  `;
 
-// Transcribir audio a texto (RF12)
-exports.transcribeVoice = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ message: "No se subió ningún archivo de audio." });
-        }
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const cleanJson = response.text().replace(/```json|```/g, "").trim();
+  const analysis = JSON.parse(cleanJson);
 
-        // Si no hay API Key real, error
-        if (!process.env.GEMINI_API_KEY) {
-            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            return res.status(500).json({ message: "Configuración incompleta: Falta la API Key de Gemini." });
-        }
+  res.json({ message: "Análisis de IA completado", analysis });
+});
 
-        console.log("Iniciando transcripción con Gemini (gemini-flash-lite-latest)...");
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+/**
+ * Vincular el resultado a una cita y crear registro médico (RF10)
+ */
+exports.saveTriageToAppointment = asyncHandler(async (req, res) => {
+  const { appointmentId, symptomsSummary, priority } = req.body;
 
-        // Leer el archivo de audio
-        const audioBuffer = fs.readFileSync(req.file.path);
-        console.log("Archivo de audio leído. Tamaño:", audioBuffer.length);
-        
-        // Limpiar mimeType (ej. "audio/webm;codecs=opus" -> "audio/webm")
-        const cleanMimeType = req.file.mimetype ? req.file.mimetype.split(';')[0] : 'audio/webm';
-        console.log("MimeType detectado:", cleanMimeType);
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId }
+  });
 
-        const part = {
-            inlineData: {
-                data: audioBuffer.toString("base64"),
-                mimeType: cleanMimeType
-            }
-        };
+  if (!appointment) {
+    res.status(404);
+    throw new Error("Cita no encontrada.");
+  }
 
-        const prompt = "Transcribe el siguiente audio médico a texto de forma clara y precisa.";
-
-        const result = await model.generateContent([prompt, part]);
-        const response = await result.response;
-        const text = response.text();
-        console.log("Transcripción exitosa:", text.substring(0, 50) + "...");
-
-        // Limpiar el archivo temporal
-        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-
-        res.json({
-            message: "Transcripción completada",
-            text
-        });
-
-    } catch (error) {
-        console.error("Error DETALLADO en transcripción:", error);
-        
-        let userMessage = "Error al procesar el audio con la IA.";
-        if (error.status === 429 || (error.message && error.message.includes("429"))) {
-            userMessage = "Límite de la IA alcanzado (429). Por favor, intenta de nuevo en unos minutos o verifica tus créditos en AI Studio.";
-        }
-
-        res.status(error.status || 500).json({ 
-            message: userMessage,
-            details: error.message
-        });
+  const record = await prisma.medicalRecord.upsert({
+    where: { appointmentId },
+    update: { symptoms: symptomsSummary, priority },
+    create: {
+      appointmentId,
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      symptoms: symptomsSummary,
+      priority
     }
-};
+  });
 
-// Guardar nota médica final y completar cita (RF12)
-exports.saveMedicalNote = async (req, res) => {
-    try {
-        const { appointmentId, notes } = req.body;
+  res.json({ message: "Triage guardado exitosamente.", record });
+});
 
-        if (!appointmentId || !notes) {
-            return res.status(400).json({ message: "Faltan datos obligatorios (ID de cita o notas)." });
-        }
+/**
+ * Transcribir audio a texto (RF12)
+ */
+exports.transcribeVoice = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("No se subió ningún archivo de audio.");
+  }
 
-        const appointment = await prisma.appointment.findUnique({
-            where: { id: appointmentId }
-        });
+  console.log("Iniciando transcripción con Gemini (gemini-2.5-flash)...");
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        if (!appointment) {
-            return res.status(404).json({ message: "Cita no encontrada." });
-        }
+  const audioBuffer = fs.readFileSync(req.file.path);
+  const cleanMimeType = req.file.mimetype ? req.file.mimetype.split(';')[0] : 'audio/webm';
 
-        // 1. Crear o actualizar el registro médico
-        const record = await prisma.medicalRecord.upsert({
-            where: { appointmentId: appointmentId },
-            update: {
-                notes: notes,
-                doctorId: req.user.userId // Asegurar que el doctor actual es el que firma
-            },
-            create: {
-                appointmentId: appointmentId,
-                patientId: appointment.patientId,
-                doctorId: appointment.doctorId,
-                notes: notes
-            }
-        });
-
-        // 2. Marcar la cita como completada
-        await prisma.appointment.update({
-            where: { id: appointmentId },
-            data: { status: 'COMPLETED' }
-        });
-
-        res.json({
-            message: "Atención finalizada y nota guardada exitosamente.",
-            record
-        });
-    } catch (error) {
-        console.error("Error al guardar nota médica:", error);
-        res.status(500).json({ message: "Error interno al guardar la atención." });
+  const part = {
+    inlineData: {
+      data: audioBuffer.toString("base64"),
+      mimeType: cleanMimeType
     }
-};
+  };
 
-// Obtener registro médico por ID de cita (Para DoctorConsole)
-exports.getMedicalRecordByAppointment = async (req, res) => {
-    try {
-        const { appointmentId } = req.params;
+  const prompt = "Transcribe el siguiente audio médico a texto de forma clara y precisa.";
+  const result = await model.generateContent([prompt, part]);
+  const response = await result.response;
+  const text = response.text();
 
-        const record = await prisma.medicalRecord.findUnique({
-            where: { appointmentId: appointmentId }
-        });
+  // Limpiar el archivo temporal
+  if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-        if (!record) {
-            return res.status(404).json({ message: "Registro no encontrado para esta cita." });
-        }
+  res.json({ message: "Transcripción completada", text });
+});
 
-        res.json(record);
-    } catch (error) {
-        console.error("Error obteniendo registro:", error);
-        res.status(500).json({ message: "Error al obtener el registro médico." });
+/**
+ * Guardar nota médica final y completar cita (RF12)
+ */
+exports.saveMedicalNote = asyncHandler(async (req, res) => {
+  const { appointmentId, notes } = req.body;
+
+  if (!appointmentId || !notes) {
+    res.status(400);
+    throw new Error("Faltan datos obligatorios.");
+  }
+
+  const appointment = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+
+  if (!appointment) {
+    res.status(404);
+    throw new Error("Cita no encontrada.");
+  }
+
+  const record = await prisma.medicalRecord.upsert({
+    where: { appointmentId },
+    update: { notes, doctorId: req.user.userId },
+    create: {
+      appointmentId,
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      notes
     }
-};
+  });
+
+  await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { status: 'COMPLETED' }
+  });
+
+  res.json({ message: "Atención finalizada.", record });
+});
+
+/**
+ * Obtener registro médico por ID de cita
+ */
+exports.getMedicalRecordByAppointment = asyncHandler(async (req, res) => {
+  const { appointmentId } = req.params;
+
+  const record = await prisma.medicalRecord.findUnique({ where: { appointmentId } });
+
+  if (!record) {
+    res.status(404);
+    throw new Error("Registro no encontrado.");
+  }
+
+  res.json(record);
+});

@@ -1,105 +1,89 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
+const asyncHandler = require('../middleware/asyncHandler');
 
-// 1. Obtener estadísticas globales para el Dashboard
-exports.getDashboardStats = async (req, res) => {
-  try {
-    const totalPatients = await prisma.user.count({ where: { role: 'PATIENT' } });
-    const totalDoctors = await prisma.user.count({ where: { role: 'DOCTOR' } });
-    const totalAppointments = await prisma.appointment.count();
-    const completedAppointments = await prisma.appointment.count({ where: { status: 'COMPLETED' } });
+/**
+ * 1. Obtener estadísticas globales para el Dashboard
+ */
+exports.getDashboardStats = asyncHandler(async (req, res) => {
+  const [patients, doctors, appointments, completed] = await Promise.all([
+    prisma.user.count({ where: { role: 'PATIENT' } }),
+    prisma.user.count({ where: { role: 'DOCTOR' } }),
+    prisma.appointment.count(),
+    prisma.appointment.count({ where: { status: 'COMPLETED' } })
+  ]);
 
-    res.json({
-      totalPatients,
-      totalDoctors,
-      totalAppointments,
-      completedAppointments
-    });
-  } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ message: 'Error interno al obtener estadísticas.' });
+  res.json({
+    totalPatients: patients,
+    totalDoctors: doctors,
+    totalAppointments: appointments,
+    completedAppointments: completed
+  });
+});
+
+/**
+ * 2. Obtener todos los usuarios con sus perfiles
+ */
+exports.getAllUsers = asyncHandler(async (req, res) => {
+  const users = await prisma.user.findMany({
+    include: { patientProfile: true, doctorProfile: true },
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(users);
+});
+
+/**
+ * 3. Cambiar el rol de un usuario
+ */
+exports.updateUserRole = asyncHandler(async (req, res) => {
+  const { userId, newRole } = req.body;
+
+  if (!['PATIENT', 'DOCTOR', 'ADMIN'].includes(newRole)) {
+    res.status(400);
+    throw new Error('Rol inválido.');
   }
-};
 
-// 2. Obtener todos los usuarios con sus perfiles
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await prisma.user.findMany({
-      include: {
-        patientProfile: true,
-        doctorProfile: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { role: newRole }
+  });
 
-    res.json(users);
-  } catch (error) {
-    console.error('Error al obtener usuarios:', error);
-    res.status(500).json({ message: 'Error interno al obtener la lista de usuarios.' });
+  res.json({ message: 'Rol actualizado exitosamente.', user: updatedUser });
+});
+
+/**
+ * 4. Restablecer contraseña de un usuario
+ */
+exports.resetUserPassword = asyncHandler(async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400);
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
   }
-};
 
-// 3. Cambiar el rol de un usuario
-exports.updateUserRole = async (req, res) => {
-  try {
-    const { userId, newRole } = req.body;
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    if (!['PATIENT', 'DOCTOR', 'ADMIN'].includes(newRole)) {
-      return res.status(400).json({ message: 'Rol inválido.' });
-    }
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword }
+  });
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { role: newRole }
-    });
+  res.json({ message: 'Contraseña restablecida exitosamente.' });
+});
 
-    res.json({ message: 'Rol actualizado exitosamente.', user: updatedUser });
-  } catch (error) {
-    console.error('Error al actualizar rol:', error);
-    res.status(500).json({ message: 'Error interno al actualizar el rol.' });
+/**
+ * 5. Eliminar un usuario
+ */
+exports.deleteUser = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (userId === req.user.userId) {
+    res.status(400);
+    throw new Error('No puedes eliminar tu propia cuenta.');
   }
-};
 
-// 4. Restablecer contraseña de un usuario
-exports.resetUserPassword = async (req, res) => {
-  try {
-    const { userId, newPassword } = req.body;
+  await prisma.user.delete({ where: { id: userId } });
 
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword }
-    });
-
-    res.json({ message: 'Contraseña restablecida exitosamente.' });
-  } catch (error) {
-    console.error('Error al restablecer contraseña:', error);
-    res.status(500).json({ message: 'Error interno al restablecer la contraseña.' });
-  }
-};
-
-// 5. Eliminar un usuario
-exports.deleteUser = async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    // No permitir eliminarse a sí mismo
-    if (userId === req.user.userId) {
-      return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta de administrador.' });
-    }
-
-    await prisma.user.delete({
-      where: { id: userId }
-    });
-
-    res.json({ message: 'Usuario eliminado de forma permanente.' });
-  } catch (error) {
-    console.error('Error al eliminar usuario:', error);
-    res.status(500).json({ message: 'Error interno al eliminar el usuario.' });
-  }
-};
+  res.json({ message: 'Usuario eliminado permanentemente.' });
+});

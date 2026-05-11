@@ -66,6 +66,9 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Servidor IgniSalud funcionando correctamente 🚀' });
 });
 
+// Importamos el manejador de errores global (Limpieza de código)
+const errorHandler = require('./middleware/errorMiddleware');
+app.use(errorHandler);
+
 // Exportamos "app" para poder levantar el servidor desde otro archivo (server.js).
-// Esto ayuda a mantener el código ordenado y es muy útil para realizar pruebas automáticas después.
 module.exports = app;

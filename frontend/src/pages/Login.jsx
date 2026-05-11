@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 import authService from '../services/authService';
-import { User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { User, Lock, ArrowRight, AlertCircle, ShieldAlert } from 'lucide-react';
 
 const Login = () => {
   const [rut, setRut] = useState('');
@@ -10,6 +10,10 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Verificar si venimos de una sesión expirada
+  const isExpired = new URLSearchParams(location.search).get('expired') === 'true';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,6 +41,25 @@ const Login = () => {
           <h2>¡Bienvenido de nuevo!</h2>
           <p>Tu salud en las mejores manos.</p>
         </div>
+
+        {isExpired && !error && (
+          <div className="info-alert animate-fade" style={{
+            background: '#EBF8FF',
+            color: '#2B6CB0',
+            padding: '12px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            border: '1px solid #BEE3F8',
+            textAlign: 'left'
+          }}>
+            <ShieldAlert size={20} />
+            <span>Tu sesión ha expirado por seguridad tras 30 minutos de inactividad.</span>
+          </div>
+        )}
 
         {error && (
           <div className="error-alert animate-fade" style={{

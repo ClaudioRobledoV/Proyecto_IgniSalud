@@ -1,108 +1,69 @@
-import axios from 'axios';
-import authService from './authService';
-
-const API_URL = 'http://localhost:4001/api';
+import api from './api';
 
 const aiService = {
   analyzeSymptoms: async (symptomsInput) => {
     try {
-      const token = authService.getToken();
-      const response = await axios.post(
-        `${API_URL}/ai/analyze`, 
-        { symptomsInput },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post(`/ai/analyze`, { symptomsInput });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al analizar síntomas con la IA' };
+      throw error;
     }
   },
 
   linkTriageToAppointment: async (appointmentId, symptomsSummary, priority) => {
     try {
-      const token = authService.getToken();
-      const response = await axios.post(
-        `${API_URL}/ai/link`,
-        { appointmentId, symptomsSummary, priority },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post(`/ai/link`, { appointmentId, symptomsSummary, priority });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al vincular el triage' };
+      throw error;
     }
   },
 
   transcribeVoice: async (audioBlob) => {
     try {
-      const token = authService.getToken();
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio_record');
 
-      const response = await axios.post(
-        `${API_URL}/ai/transcribe`,
-        formData,
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`
-          } 
-        }
-      );
+      const response = await api.post(`/ai/transcribe`, formData);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error en la transcripción de voz' };
+      throw error;
     }
   },
 
   saveMedicalNote: async (appointmentId, notes) => {
     try {
-      const token = authService.getToken();
-      const response = await axios.post(
-        `${API_URL}/ai/save-note`,
-        { appointmentId, notes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post(`/ai/save-note`, { appointmentId, notes });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al guardar la nota médica' };
+      throw error;
     }
   },
 
   getMedicalRecord: async (appointmentId) => {
     try {
-      const token = authService.getToken();
-      const response = await axios.get(
-        `${API_URL}/ai/record/${appointmentId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/ai/record/${appointmentId}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al obtener el registro médico' };
+      throw error;
     }
   },
 
   getHistory: async () => {
     try {
-      const token = authService.getToken();
-      const response = await axios.get(
-        `${API_URL}/medical-records/my-history`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/medical-records/my-history`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al obtener el historial clínico' };
+      throw error;
     }
   },
 
   getPatientHistory: async (patientId) => {
     try {
-      const token = authService.getToken();
-      const response = await axios.get(
-        `${API_URL}/medical-records/patient/${patientId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/medical-records/patient/${patientId}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al obtener el historial del paciente' };
+      throw error;
     }
   }
 };

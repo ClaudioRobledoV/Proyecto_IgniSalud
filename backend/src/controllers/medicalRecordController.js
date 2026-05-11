@@ -1,49 +1,39 @@
 const prisma = require('../config/prisma');
+const asyncHandler = require('../middleware/asyncHandler');
 
-// Obtener mi propio historial médico (Para Pacientes)
-exports.getMyHistory = async (req, res) => {
-    try {
-        const patient = await prisma.patientProfile.findUnique({
-            where: { userId: req.user.userId }
-        });
+/**
+ * Obtener mi propio historial médico (Para Pacientes)
+ */
+exports.getMyHistory = asyncHandler(async (req, res) => {
+  const patient = await prisma.patientProfile.findUnique({
+    where: { userId: req.user.userId }
+  });
 
-        if (!patient) {
-            return res.status(404).json({ message: "Perfil de paciente no encontrado." });
-        }
+  if (!patient) {
+    res.status(404);
+    throw new Error("Perfil de paciente no encontrado.");
+  }
 
-        const history = await prisma.medicalRecord.findMany({
-            where: { patientId: patient.id },
-            include: {
-                doctor: true,
-                appointment: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+  const history = await prisma.medicalRecord.findMany({
+    where: { patientId: patient.id },
+    include: { doctor: true, appointment: true },
+    orderBy: { createdAt: 'desc' }
+  });
 
-        res.json(history);
-    } catch (error) {
-        console.error("Error obteniendo historial propio:", error);
-        res.status(500).json({ message: "Error al obtener el historial médico." });
-    }
-};
+  res.json(history);
+});
 
-// Obtener historial de un paciente específico (Para Médicos)
-exports.getPatientHistory = async (req, res) => {
-    try {
-        const { patientId } = req.params;
+/**
+ * Obtener historial de un paciente específico (Para Médicos)
+ */
+exports.getPatientHistory = asyncHandler(async (req, res) => {
+  const { patientId } = req.params;
 
-        const history = await prisma.medicalRecord.findMany({
-            where: { patientId: patientId },
-            include: {
-                doctor: true,
-                appointment: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+  const history = await prisma.medicalRecord.findMany({
+    where: { patientId: patientId },
+    include: { doctor: true, appointment: true },
+    orderBy: { createdAt: 'desc' }
+  });
 
-        res.json(history);
-    } catch (error) {
-        console.error("Error obteniendo historial de paciente:", error);
-        res.status(500).json({ message: "Error al obtener el historial médico del paciente." });
-    }
-};
+  res.json(history);
+});
