@@ -60,14 +60,17 @@ const GlobalAppointments = () => {
 
   const exportToCSV = () => {
     const headers = ['ID', 'Fecha', 'Paciente', 'Médico', 'Estado', 'Motivo'];
-    const rows = filteredAppointments.map(apt => [
-      apt.id,
-      new Date(apt.date).toLocaleDateString('es-CL'),
-      `${apt.patient?.firstName} ${apt.patient?.lastName}`,
-      `Dr. ${apt.doctor?.firstName} ${apt.doctor?.lastName}`,
-      apt.status,
-      apt.reason || 'N/A'
-    ]);
+    const rows = filteredAppointments.map(apt => {
+      const status = apt.status?.trim().toUpperCase();
+      return [
+        apt.id,
+        new Date(apt.date).toLocaleDateString('es-CL'),
+        `${apt.patient?.firstName} ${apt.patient?.lastName}`,
+        `Dr. ${apt.doctor?.firstName} ${apt.doctor?.lastName}`,
+        status?.includes('PENDING') ? 'Pendiente' : status?.includes('COMPLETED') ? 'Completada' : 'Cancelada',
+        apt.reason || 'N/A'
+      ];
+    });
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -145,29 +148,34 @@ const GlobalAppointments = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAppointments.map(apt => (
-                  <tr key={apt.id}>
-                    <td className="date-cell">
-                      {new Date(apt.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                    </td>
-                    <td className="user-cell">
-                      <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
-                    </td>
-                    <td className="user-cell doctor">
-                      <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
-                    </td>
-                    <td>
-                      <span className={`status-pill ${apt.status.toLowerCase()}`}>
-                        {apt.status === 'PENDING' ? 'Pendiente' : apt.status === 'COMPLETED' ? 'Completada' : 'Cancelada'}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn-view" title="Ver detalle">
-                        <FileText size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredAppointments.map(apt => {
+                  const status = apt.status?.trim().toUpperCase();
+                  return (
+                    <tr key={apt.id}>
+                      <td className="date-cell">
+                        {new Date(apt.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                      </td>
+                      <td className="user-cell">
+                        <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
+                      </td>
+                      <td className="user-cell doctor">
+                        <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${status?.toLowerCase()}`}>
+                          {status?.includes('PENDING') ? 'Pendiente' : 
+                           status?.includes('COMPLETED') ? 'Completada' : 
+                           status?.includes('CANCELLED') ? 'Cancelada' : status}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn-view" title="Ver detalle">
+                          <FileText size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredAppointments.length === 0 && (
                   <tr>
                     <td colSpan="5" className="empty-row">No se encontraron citas con estos filtros.</td>

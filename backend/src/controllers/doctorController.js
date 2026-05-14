@@ -51,27 +51,51 @@ exports.getAvailableSlots = asyncHandler(async (req, res) => {
     throw new Error('Indique una fecha válida.');
   }
 
+  // 1. Obtener ajustes del sistema (Duración y Horario)
+  let settings = await prisma.systemSettings.findUnique({
+    where: { id: 'singleton' }
+  });
+
+  // Valores por defecto si no existen ajustes
+  if (!settings) {
+    settings = {
+      appointmentDuration: 20,
+      clinicOpenTime: '08:00',
+      clinicCloseTime: '20:00'
+    };
+  }
+
   const queryDate = new Date(date);
   const dayOfWeek = queryDate.getUTCDay();
 
   // Fines de semana no hay atención
   if (dayOfWeek === 0 || dayOfWeek === 6) return res.json([]);
 
-  // Generar slots base (bloques de 40 min)
+  // 2. Generar slots basados en los ajustes de la clínica
   const baseSlots = [];
-  const addBlocks = (startH, startM, endH, endM) => {
-    let h = startH, m = startM;
-    while (h < endH || (h === endH && m <= endM)) {
-      baseSlots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-      m += 40;
-      if (m >= 60) { h += 1; m -= 60; }
+  const [startH, startM] = settings.clinicOpenTime.split(':').map(Number);
+  const [endH, endM] = settings.clinicCloseTime.split(':').map(Number);
+  const duration = settings.appointmentDuration;
+
+  let currentH = startH;
+  let currentM = startM;
+
+  // Generar bloques hasta llegar a la hora de cierre
+  while (currentH < endH || (currentH === endH && currentM < endM)) {
+    // Solo agregamos el slot si el bloque termina antes o justo en la hora de cierre
+    const nextM = currentM + duration;
+    const nextH = currentH + Math.floor(nextM / 60);
+    const finalM = nextM % 60;
+
+    if (nextH < endH || (nextH === endH && finalM <= endM)) {
+      baseSlots.push(`${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`);
     }
-  };
 
-  addBlocks(9, 0, 12, 20); // Mañana
-  addBlocks(14, 0, 18, 0); // Tarde
+    currentH = nextH;
+    currentM = finalM;
+  }
 
-  // Buscar citas ocupadas
+  // 3. Buscar citas ya reservadas para filtrar
   const startOfDay = new Date(`${date}T00:00:00.000Z`);
   const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
@@ -88,6 +112,7 @@ exports.getAvailableSlots = asyncHandler(async (req, res) => {
     return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   });
 
+  // Filtrar los slots base que no estén ocupados
   const availableSlots = baseSlots.filter(s => !busyHours.includes(s));
   res.json(availableSlots);
 });

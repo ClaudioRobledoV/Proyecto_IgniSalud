@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Mic } from 'lucide-react';
+import { Calendar, Mic, FileText } from 'lucide-react';
 import authService from '../services/authService';
 import appointmentService from '../services/appointmentService';
 import adminService from '../services/adminService';
@@ -40,6 +40,10 @@ const Dashboard = () => {
   }, [navigate]);
 
   if (loading) return <div className="flex-center" style={{height: '100vh'}}>Cargando...</div>;
+
+  const lastCompletedApt = user?.role === 'PATIENT' 
+    ? [...appointments].reverse().find(a => a.status?.trim().toUpperCase() === 'COMPLETED' && a.medicalRecord?.notes)
+    : null;
 
   return (
     <div className="dashboard-container">
@@ -117,6 +121,23 @@ const Dashboard = () => {
                 </>
               )}
             </div>
+
+            {/* Último Diagnóstico (Paciente) */}
+            {user?.role === 'PATIENT' && lastCompletedApt && (
+              <div className="status-card" style={{ gridColumn: 'span 2', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                <h3 style={{ color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={18} /> Último Diagnóstico e Instrucciones
+                </h3>
+                <div style={{ marginTop: '12px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #DCFCE7' }}>
+                  <p style={{ color: '#14532D', fontSize: '15px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                    {lastCompletedApt.medicalRecord.notes}
+                  </p>
+                </div>
+                <span className="card-desc" style={{ marginTop: '12px', display: 'block', color: '#166534', fontWeight: '600' }}>
+                  Atendido por: Dr. {lastCompletedApt.doctor?.firstName} {lastCompletedApt.doctor?.lastName} el {new Date(lastCompletedApt.date).toLocaleDateString('es-CL')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Listado de Citas según Rol */}
@@ -138,26 +159,48 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {appointments.map((apt) => (
-                      <tr key={apt.id}>
-                        <td className="time-cell">
-                          {new Date(apt.date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                        </td>
-                        <td className="patient-cell">
-                          {user?.role === 'PATIENT' 
-                            ? `Dr. ${apt.doctor?.firstName} ${apt.doctor?.lastName}`
-                            : `${apt.patient?.firstName} ${apt.patient?.lastName}`}
-                        </td>
-                        <td><span className={`status-pill ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
-                        <td>
-                          {user?.role === 'PATIENT' ? (
-                            <button className="btn-action secondary" onClick={() => navigate('/triage', { state: { appointmentId: apt.id } })}>Evaluación</button>
-                          ) : (
-                            <button className="btn-action" onClick={() => navigate('/doctor-console', { state: { appointmentId: apt.id, patient: apt.patient } })}>Atender</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {appointments.map((apt) => {
+                      const status = apt.status?.trim().toUpperCase();
+                      return (
+                        <tr key={apt.id}>
+                          <td className="time-cell">
+                            {new Date(apt.date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                          </td>
+                          <td className="patient-cell">
+                            {user?.role === 'PATIENT' 
+                              ? `Dr. ${apt.doctor?.firstName} ${apt.doctor?.lastName}`
+                              : `${apt.patient?.firstName} ${apt.patient?.lastName}`}
+                          </td>
+                          <td>
+                            <span className={`status-pill ${status?.toLowerCase()}`}>
+                              {status?.includes('PENDING') ? 'Pendiente' : 
+                               status?.includes('COMPLETED') ? 'Completada' : 
+                               status?.includes('CANCELLED') ? 'Cancelada' : status}
+                            </span>
+                          </td>
+                          <td>
+                            {user?.role === 'PATIENT' ? (
+                              status?.includes('COMPLETED') ? (
+                                <button className="btn-action" onClick={() => navigate('/history')}>Ver Resumen</button>
+                              ) : (
+                                <button className="btn-action secondary" onClick={() => navigate('/triage', { state: { appointmentId: apt.id } })}>Evaluación</button>
+                              )
+                            ) : (
+                              status?.includes('COMPLETED') ? (
+                                <button className="btn-action" onClick={() => navigate('/history', { 
+                                  state: { 
+                                    patientId: apt.patientId, 
+                                    patientName: `${apt.patient?.firstName} ${apt.patient?.lastName}` 
+                                  } 
+                                })}>Ver Registro</button>
+                              ) : (
+                                <button className="btn-action" onClick={() => navigate('/doctor-console', { state: { appointmentId: apt.id, patient: apt.patient } })}>Atender</button>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

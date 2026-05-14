@@ -116,9 +116,11 @@ exports.transcribeVoice = asyncHandler(async (req, res) => {
  */
 exports.saveMedicalNote = asyncHandler(async (req, res) => {
   const { appointmentId, notes } = req.body;
+  console.log(">>> DEBUG: Guardando nota médica para appointmentId:", appointmentId);
 
   if (!appointmentId || !notes) {
     res.status(400);
+    console.error(">>> ERROR: Faltan appointmentId o notes en el body.");
     throw new Error("Faltan datos obligatorios.");
   }
 
@@ -126,26 +128,42 @@ exports.saveMedicalNote = asyncHandler(async (req, res) => {
 
   if (!appointment) {
     res.status(404);
+    console.error(">>> ERROR: No se encontró la cita con ID:", appointmentId);
     throw new Error("Cita no encontrada.");
   }
 
-  const record = await prisma.medicalRecord.upsert({
-    where: { appointmentId },
-    update: { notes, doctorId: req.user.userId },
-    create: {
-      appointmentId,
+  console.log(">>> DEBUG: Datos de la cita encontrados:", {
       patientId: appointment.patientId,
       doctorId: appointment.doctorId,
-      notes
-    }
+      status: appointment.status
   });
 
-  await prisma.appointment.update({
-    where: { id: appointmentId },
-    data: { status: 'COMPLETED' }
-  });
+  try {
+    const record = await prisma.medicalRecord.upsert({
+      where: { appointmentId },
+      update: { notes, doctorId: appointment.doctorId },
+      create: {
+        appointmentId,
+        patientId: appointment.patientId,
+        doctorId: appointment.doctorId,
+        notes
+      }
+    });
 
-  res.json({ message: "Atención finalizada.", record });
+    console.log(">>> DEBUG: Registro médico upsertado con éxito:", record.id);
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: 'COMPLETED' }
+    });
+
+    console.log(">>> DEBUG: Estado de cita actualizado a COMPLETED.");
+    res.json({ message: "Atención finalizada.", record });
+  } catch (error) {
+    console.error(">>> ERROR CRÍTICO EN BASE DE DATOS:", error);
+    res.status(500);
+    throw error;
+  }
 });
 
 /**

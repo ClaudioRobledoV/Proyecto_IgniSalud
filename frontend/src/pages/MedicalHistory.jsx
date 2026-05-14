@@ -66,49 +66,54 @@ const MedicalHistory = () => {
                     </div>
                 ) : (
                     <div className="history-list">
-                        {history.map((record) => (
-                            <div key={record.id} className="history-card">
-                                <div className="card-header">
-                                    <div className="date-badge">
-                                        <Clock size={16} />
-                                        <span>{new Date(record.createdAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
-                                    </div>
-                                    {record.priority && (
-                                        <span className={`priority-tag ${record.priority.toLowerCase()}`}>
-                                            Triage: {record.priority}
-                                        </span>
-                                    )}
-                                </div>
-                                
-                                <div className="card-body">
-                                    <div className="doc-info-row">
-                                        <div className="doc-info">
-                                            <User size={18} />
-                                            <span>Atendido por: Dr. {record.doctor?.firstName} {record.doctor?.lastName}</span>
+                        {history.map((record) => {
+                            const priority = record.priority?.trim().toUpperCase();
+                            return (
+                                <div key={record.id} className="history-card">
+                                    <div className="card-header">
+                                        <div className="date-badge">
+                                            <Clock size={16} />
+                                            <span>{new Date(record.createdAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
                                         </div>
-                                        
-                                        {currentUser?.role === 'DOCTOR' && record.patient && (
-                                            <div className="patient-extra-info">
-                                                <span className="info-badge">Edad: {record.patient.age || 'N/A'} años</span>
-                                                <span className="info-badge warning">Alergias: {record.patient.allergies || 'Ninguna'}</span>
-                                            </div>
+                                        {priority && (
+                                            <span className={`priority-tag ${priority.toLowerCase()}`}>
+                                                Triage: {priority === 'LOW' ? 'Baja' : 
+                                                         priority === 'MEDIUM' ? 'Media' : 
+                                                         priority === 'HIGH' ? 'Alta' : record.priority}
+                                            </span>
                                         )}
                                     </div>
                                     
-                                    {record.symptoms && (
-                                        <div className="record-section">
-                                            <h4><Clipboard size={16} /> Síntomas reportados (Triage)</h4>
-                                            <p>{record.symptoms}</p>
+                                    <div className="card-body">
+                                        <div className="doc-info-row">
+                                            <div className="doc-info">
+                                                <User size={18} />
+                                                <span>Atendido por: Dr. {record.doctor?.firstName} {record.doctor?.lastName}</span>
+                                            </div>
+                                            
+                                            {currentUser?.role === 'DOCTOR' && record.patient && (
+                                                <div className="patient-extra-info">
+                                                    <span className="info-badge">Edad: {record.patient.age || 'N/A'} años</span>
+                                                    <span className="info-badge warning">Alergias: {record.patient.allergies || 'Ninguna'}</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                    
-                                    <div className="record-section">
-                                        <h4><FileText size={16} /> Notas del Profesional</h4>
-                                        <p>{record.notes || 'Sin observaciones registradas.'}</p>
+                                        
+                                        {record.symptoms && (
+                                            <div className="record-section">
+                                                <h4><Clipboard size={16} /> Síntomas reportados (Triage)</h4>
+                                                <p>{record.symptoms}</p>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="record-section">
+                                            <h4><FileText size={16} /> Diagnóstico e Instrucciones Médicas</h4>
+                                            <p>{record.notes || 'Sin observaciones registradas.'}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

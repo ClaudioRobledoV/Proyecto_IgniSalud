@@ -75,14 +75,25 @@ const DoctorConsole = () => {
   };
 
   const handleSave = async () => {
-    if (!appointmentId || !noteText.trim()) return;
+    if (!appointmentId) {
+        setError('Error crítico: ID de cita no encontrado.');
+        return;
+    }
+    if (!noteText.trim()) {
+        setError('Por favor, escribe o dicta una nota médica antes de guardar.');
+        return;
+    }
+
     setLoading(true);
     try {
       await aiService.saveMedicalNote(appointmentId, noteText);
       alert('Atención guardada exitosamente.');
       navigate('/dashboard');
     } catch (err) {
-      setError('Error al guardar la nota médica.');
+      console.error('Error al guardar nota médica:', err);
+      const msg = err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error al guardar la nota médica: ${msg}`);
+      alert(`No se pudo guardar: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -117,7 +128,10 @@ const DoctorConsole = () => {
               <div className="triage-info-box animate-fade">
                 <div style={{display:'flex', justifyContent:'space-between'}}>
                   <strong>Resumen de Triage:</strong>
-                  <span className={`priority-pill ${triageData.priority?.toLowerCase()}`}>{triageData.priority}</span>
+                  <span className={`priority-pill ${triageData.priority?.toLowerCase()}`}>
+                    {triageData.priority === 'LOW' ? 'Baja' : 
+                     triageData.priority === 'MEDIUM' ? 'Media' : 'Alta'}
+                  </span>
                 </div>
                 <p>{triageData.symptoms}</p>
               </div>
@@ -148,7 +162,7 @@ const DoctorConsole = () => {
                 <button className="btn-primary" disabled={!noteText.trim() || loading} onClick={handleSave}><Save size={18} /> Guardar Atención</button>
               </div>
             </div>
-            {error && <p className="error-text">{error}</p>}
+            {error && <p className="error-text" style={{color: '#E53E3E', fontWeight: 'bold'}}>{error}</p>}
           </div>
         </section>
       </main>

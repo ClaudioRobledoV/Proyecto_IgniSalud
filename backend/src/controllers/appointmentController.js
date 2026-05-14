@@ -57,14 +57,14 @@ exports.getMyAppointments = asyncHandler(async (req, res) => {
     const patient = await prisma.patientProfile.findUnique({ where: { userId: req.user.userId } });
     appointments = await prisma.appointment.findMany({
       where: { patientId: patient.id },
-      include: { doctor: { include: { user: { select: { rut: true } } } } },
+      include: { doctor: { include: { user: { select: { rut: true } } } }, medicalRecord: true },
       orderBy: { date: 'asc' }
     });
   } else if (req.user.role === 'DOCTOR') {
     const doctor = await prisma.doctorProfile.findUnique({ where: { userId: req.user.userId } });
     appointments = await prisma.appointment.findMany({
       where: { doctorId: doctor.id },
-      include: { patient: { include: { user: { select: { rut: true } } } } },
+      include: { patient: { include: { user: { select: { rut: true } } } }, medicalRecord: true },
       orderBy: { date: 'asc' }
     });
   } else {

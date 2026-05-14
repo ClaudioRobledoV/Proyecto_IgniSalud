@@ -16,7 +16,7 @@ const SystemSettings = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const SystemSettings = () => {
         adminService.getSystemSettings(),
         adminService.getSpecialties()
       ]);
-      
+
       if (settingsData) setSettings(settingsData);
       setSpecialties(specialtiesData);
     } catch (err) {
@@ -108,13 +108,13 @@ const SystemSettings = () => {
                 <Clock size={20} />
                 <h2>Reglas de Agenda Global</h2>
               </div>
-              
+
               <div className="form-group">
                 <label>Duración por defecto de Cita (minutos)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={settings.appointmentDuration}
-                  onChange={(e) => setSettings({...settings, appointmentDuration: e.target.value})}
+                  onChange={(e) => setSettings({ ...settings, appointmentDuration: e.target.value })}
                   min="5" max="120"
                 />
               </div>
@@ -122,40 +122,40 @@ const SystemSettings = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label>Hora Apertura Clínica</label>
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     value={settings.clinicOpenTime}
-                    onChange={(e) => setSettings({...settings, clinicOpenTime: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, clinicOpenTime: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Hora Cierre Clínica</label>
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     value={settings.clinicCloseTime}
-                    onChange={(e) => setSettings({...settings, clinicCloseTime: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, clinicCloseTime: e.target.value })}
                   />
                 </div>
               </div>
 
               <hr />
 
-              <div className="card-header" style={{marginTop: '20px'}}>
+              <div className="card-header" style={{ marginTop: '20px' }}>
                 <Shield size={20} />
                 <h2>Políticas de Seguridad</h2>
               </div>
               <div className="form-group">
                 <label>Cierre de sesión por inactividad (minutos)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={settings.sessionTimeout}
-                  onChange={(e) => setSettings({...settings, sessionTimeout: e.target.value})}
+                  onChange={(e) => setSettings({ ...settings, sessionTimeout: e.target.value })}
                 />
               </div>
 
               <hr />
 
-              <div className="card-header" style={{marginTop: '20px'}}>
+              <div className="card-header" style={{ marginTop: '20px' }}>
                 <Mic size={20} />
                 <h2>Inteligencia Artificial</h2>
               </div>
@@ -165,10 +165,10 @@ const SystemSettings = () => {
                   <p>Si se apaga, los doctores no podrán procesar audio.</p>
                 </div>
                 <label className="switch">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={settings.aiTranscriptionEnabled}
-                    onChange={(e) => setSettings({...settings, aiTranscriptionEnabled: e.target.checked})}
+                    onChange={(e) => setSettings({ ...settings, aiTranscriptionEnabled: e.target.checked })}
                   />
                   <span className="slider round"></span>
                 </label>
@@ -187,10 +187,10 @@ const SystemSettings = () => {
                 <LayoutGrid size={20} />
                 <h2>Gestión de Especialidades</h2>
               </div>
-              
+
               <form onSubmit={handleAddSpecialty} className="add-specialty-form">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="Nueva especialidad (ej: Nutrición)"
                   value={newSpecialty}
                   onChange={(e) => setNewSpecialty(e.target.value)}
@@ -216,7 +216,8 @@ const SystemSettings = () => {
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .settings-page-container { min-height: 100vh; background: #F1F5F9; padding: 40px 20px; display: flex; justify-content: center; }
         .settings-content { width: 100%; max-width: 1100px; }
         

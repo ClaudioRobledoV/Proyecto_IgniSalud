@@ -43,12 +43,47 @@ exports.updateUserRole = asyncHandler(async (req, res) => {
     throw new Error('Rol inválido.');
   }
 
-  const updatedUser = await prisma.user.update({
+  // Obtener el usuario actual con sus perfiles
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    data: { role: newRole }
+    include: { patientProfile: true, doctorProfile: true }
   });
 
-  res.json({ message: 'Rol actualizado exitosamente.', user: updatedUser });
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado.');
+  }
+
+  // Preparar datos para el nuevo perfil si es necesario
+  const baseProfile = user.patientProfile || user.doctorProfile;
+  const firstName = baseProfile?.firstName || 'Usuario';
+  const lastName = baseProfile?.lastName || 'Sistema';
+
+  // Actualizar rol y crear perfil si falta
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { 
+      role: newRole,
+      // Si el rol cambia a DOCTOR y no tiene perfil de doctor, crearlo
+      doctorProfile: (newRole === 'DOCTOR' && !user.doctorProfile) ? {
+        create: {
+          firstName,
+          lastName,
+          specialty: 'Medicina General' // Valor por defecto
+        }
+      } : undefined,
+      // Si el rol cambia a PATIENT y no tiene perfil de paciente, crearlo
+      patientProfile: (newRole === 'PATIENT' && !user.patientProfile) ? {
+        create: {
+          firstName,
+          lastName
+        }
+      } : undefined
+    },
+    include: { patientProfile: true, doctorProfile: true }
+  });
+
+  res.json({ message: 'Rol y perfil actualizados exitosamente.', user: updatedUser });
 });
 
 /**

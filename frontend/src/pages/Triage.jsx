@@ -145,7 +145,7 @@ const Triage = () => {
         ) : (
           <div className="triage-result animate-fade">
             <div className="priority-badge" style={{ backgroundColor: priorityColors[result.priority] }}>
-              Prioridad: {result.priority}
+              Prioridad: {result.priority === 'LOW' ? 'Baja' : result.priority === 'MEDIUM' ? 'Media' : 'Alta'}
             </div>
             
             <div className="result-section">
