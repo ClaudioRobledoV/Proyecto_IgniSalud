@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD: postgres # La misma que pusimos en el .env
       POSTGRES_DB: ignisalud
     ports:
-      - "5433:5432" # Expone el puerto 5433 (para evitar choques con instalaciones locales)
+      - "5434:5432" # Expone el puerto 5434 (para evitar choques con instalaciones locales)
     volumes:
       - pgdata:/var/lib/postgresql/data # Guarda los datos permanentemente aunque el contenedor se apague
 

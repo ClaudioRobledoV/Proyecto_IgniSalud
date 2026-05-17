@@ -17,6 +17,12 @@ exports.register = asyncHandler(async (req, res) => {
     throw new Error('El usuario con ese RUT ya está registrado.');
   }
 
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+  if (!passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error('La contraseña no cumple con los requisitos de seguridad. Debe tener entre 8 y 20 caracteres.');
+  }
+
   // 2. Encriptar contraseña
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -58,7 +64,7 @@ exports.login = asyncHandler(async (req, res) => {
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     res.status(401);
-    throw new Error('Credenciales inválidas.');
+    throw new Error('Error de autenticación. Credenciales inválidas.');
   }
 
   // 2. Generar Token JWT (30m de duración)
@@ -92,6 +98,12 @@ exports.changePassword = asyncHandler(async (req, res) => {
   if (!(await bcrypt.compare(currentPassword, user.password))) {
     res.status(401);
     throw new Error('La contraseña actual es incorrecta.');
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+  if (!passwordRegex.test(newPassword)) {
+    res.status(400);
+    throw new Error('La nueva contraseña no cumple con los requisitos de seguridad. Debe tener entre 8 y 20 caracteres.');
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -135,6 +147,12 @@ exports.resetPassword = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error("Usuario no encontrado.");
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+  if (!passwordRegex.test(newPassword)) {
+    res.status(400);
+    throw new Error('La nueva contraseña no cumple con los requisitos de seguridad. Debe tener entre 8 y 20 caracteres.');
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);

@@ -25,7 +25,7 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       if (err.response && err.response.status === 401) {
-        setError('RUT o contraseña incorrectos. Por favor, inténtalo de nuevo.');
+        setError('Error de autenticación. Credenciales inválidas. Por favor, revisa tus datos e inténtalo nuevamente.');
       } else {
         setError(err.message || 'Error al iniciar sesión');
       }

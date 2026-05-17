@@ -31,6 +31,12 @@ const Register = () => {
       return;
     }
 
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+    if (!strongPasswordRegex.test(formData.password)) {
+      setError('La contraseña debe tener entre 8 y 20 caracteres, incluyendo una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&).');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -47,7 +53,7 @@ const Register = () => {
       await authService.login(formData.rut, formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Error al registrar cuenta');
+      setError(err.response?.data?.message || err.message || 'Error al registrar cuenta');
     } finally {
       setLoading(false);
     }

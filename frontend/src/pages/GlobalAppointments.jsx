@@ -150,11 +150,15 @@ const GlobalAppointments = () => {
                     <td className="date-cell">
                       {new Date(apt.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                     </td>
-                    <td className="user-cell">
-                      <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
+                    <td>
+                      <div className="user-cell">
+                        <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
+                      </div>
                     </td>
-                    <td className="user-cell doctor">
-                      <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                    <td>
+                      <div className="user-cell doctor">
+                        <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                      </div>
                     </td>
                     <td>
                       <span className={`status-pill ${apt.status.toLowerCase()}`}>
