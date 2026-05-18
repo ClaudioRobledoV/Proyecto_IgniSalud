@@ -15,6 +15,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import GlobalAppointments from './pages/GlobalAppointments'
 import SystemSettings from './pages/SystemSettings'
+import MyAppointments from './pages/MyAppointments'
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }) => {
@@ -91,6 +92,7 @@ function App() {
         <Route path="/users" element={<PrivateRoute><UserManagement /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/admin/appointments" element={<PrivateRoute><GlobalAppointments /></PrivateRoute>} />
+        <Route path="/my-appointments" element={<PrivateRoute><MyAppointments /></PrivateRoute>} />
         <Route path="/settings" element={<PrivateRoute><SystemSettings /></PrivateRoute>} />
 
         {/* Redirección por defecto */}

@@ -155,11 +155,15 @@ const GlobalAppointments = () => {
                       <td className="date-cell">
                         {new Date(apt.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                       </td>
-                      <td className="user-cell">
-                        <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
+                      <td>
+                        <div className="user-info">
+                          <User size={14} /> {apt.patient?.firstName} {apt.patient?.lastName}
+                        </div>
                       </td>
-                      <td className="user-cell doctor">
-                        <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                      <td>
+                        <div className="user-info doctor">
+                          <User size={14} /> Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
+                        </div>
                       </td>
                       <td>
                         <span className={`status-pill ${status?.toLowerCase()}`}>
@@ -214,8 +218,8 @@ const GlobalAppointments = () => {
         .global-table td { padding: 18px 24px; border-bottom: 1px solid #F1F5F9; font-size: 15px; }
         
         .date-cell { font-weight: 700; color: var(--primary-dark); }
-        .user-cell { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--secondary); }
-        .user-cell.doctor { color: #6366F1; }
+        .user-info { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--secondary); }
+        .user-info.doctor { color: #6366F1; }
 
         .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
         .status-pill.pending { background: #FEF3C7; color: #92400E; }

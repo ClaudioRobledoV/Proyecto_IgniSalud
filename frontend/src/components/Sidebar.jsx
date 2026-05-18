@@ -16,8 +16,7 @@ const Sidebar = ({ user, activePath }) => {
   const menuItems = {
     PATIENT: [
       { icon: <LayoutDashboard size={20} />, label: 'Resumen', path: '/dashboard' },
-      { icon: <ClipboardList size={20} />, label: 'Evaluación de Síntomas', path: '/triage' },
-      { icon: <Calendar size={20} />, label: 'Mis Citas' },
+      { icon: <Calendar size={20} />, label: 'Mis Citas', path: '/my-appointments' },
       { icon: <FileText size={20} />, label: 'Historia Clínica', path: '/history' },
       { 
         icon: <Settings size={20} />, 
